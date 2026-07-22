@@ -4,6 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
+import { createClient } from '@supabase/supabase-js';
 import { initDb, getDb } from './db';
 
 const app = express();
@@ -12,7 +13,12 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Ensure uploads directory exists
+// Initialize Supabase Client
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Ensure local uploads directory exists (backward compatibility/fallback)
 const uploadsDir = path.resolve(__dirname, '../uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
@@ -21,17 +27,8 @@ if (!fs.existsSync(uploadsDir)) {
 // Serve uploaded images statically
 app.use('/uploads', express.static(uploadsDir));
 
-// Configure multer for file storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${uuidv4()}${ext}`);
-  }
-});
-
+// Configure multer for memory storage (direct to Supabase)
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 // Endpoints
@@ -44,12 +41,12 @@ app.get('/api/pins', async (req: Request, res: Response) => {
 
     const db = await getDb();
     
-    let query = 'SELECT * FROM pins WHERE privacy_mode = "public"';
+    let query = "SELECT * FROM pins WHERE privacy_mode = 'public'";
     const params: any[] = [];
 
     if (circleIds.length > 0) {
       const placeholders = circleIds.map(() => '?').join(',');
-      query += ` OR (privacy_mode = "circle" AND circle_id IN (${placeholders}))`;
+      query += ` OR (privacy_mode = 'circle' AND circle_id IN (${placeholders}))`;
       params.push(...circleIds);
     }
 
@@ -71,9 +68,36 @@ app.post('/api/pins', upload.single('image'), async (req: Request, res: Response
        return;
     }
 
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
-    const pinId = uuidv4();
+    let imageUrl: string | null = null;
 
+    if (req.file) {
+      const file = req.file;
+      const ext = path.extname(file.originalname);
+      const fileName = `${uuidv4()}${ext}`;
+
+      // Upload to Supabase Storage bucket 'memory-images'
+      const { data, error: uploadError } = await supabase.storage
+        .from('memory-images')
+        .upload(fileName, file.buffer, {
+          contentType: file.mimetype,
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Supabase image upload error:', uploadError);
+        res.status(500).json({ error: 'Failed to upload image to Supabase Storage' });
+        return;
+      }
+
+      // Get public URL of the uploaded image
+      const { data: { publicUrl } } = supabase.storage
+        .from('memory-images')
+        .getPublicUrl(fileName);
+
+      imageUrl = publicUrl;
+    }
+
+    const pinId = uuidv4();
     const db = await getDb();
     await db.run(
       `INSERT INTO pins (id, lat, lng, content, image_url, privacy_mode, circle_id, memory_date, spotify_track_id, people) 
@@ -147,7 +171,6 @@ app.post('/api/circles', async (req: Request, res: Response): Promise<void> => {
        return;
     }
     
-    // Generate a clean 6 character join code
     const id = Math.random().toString(36).substring(2, 8).toUpperCase();
     const db = await getDb();
     
@@ -178,7 +201,7 @@ app.get('/api/circles/:id', async (req: Request, res: Response): Promise<void> =
   }
 });
 
-// 7. Search songs using Deezer public API (no credentials needed)
+// 7. Search songs using Deezer public API
 app.get('/api/songs/search', async (req: Request, res: Response): Promise<void> => {
   try {
     const query = req.query.q as string;
@@ -240,7 +263,6 @@ app.put('/api/pins/:id', async (req: Request, res: Response): Promise<void> => {
 
     const db = await getDb();
     
-    // Check if pin exists
     const pin = await db.get('SELECT * FROM pins WHERE id = ?', id);
     if (!pin) {
        res.status(404).json({ error: 'Pin not found' });
@@ -271,7 +293,7 @@ app.put('/api/pins/:id', async (req: Request, res: Response): Promise<void> => {
 // Start server
 initDb().then(() => {
   app.listen(PORT, () => {
-    console.log(`Backend server running on http://localhost:${PORT}`);
+    console.log(`Backend server running on port ${PORT}`);
   });
 }).catch(err => {
   console.error('Failed to initialize database:', err);

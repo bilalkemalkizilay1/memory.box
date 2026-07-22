@@ -1,77 +1,108 @@
-import sqlite3 from 'sqlite3';
-import { open, Database } from 'sqlite';
-import path from 'path';
+import { Pool } from 'pg';
+import dotenv from 'dotenv';
 
-let dbPromise: Promise<Database> | null = null;
+dotenv.config();
 
-const dbPath = path.resolve(__dirname, '../../memory_box.db');
+const connectionString = process.env.DATABASE_URL;
 
-export async function getDb(): Promise<Database> {
-  if (!dbPromise) {
-    dbPromise = open({
-      filename: dbPath,
-      driver: sqlite3.Database
-    });
+if (!connectionString) {
+  console.warn("WARNING: DATABASE_URL environment variable is not defined!");
+}
+
+export const pool = new Pool({
+  connectionString,
+  ssl: connectionString && !connectionString.includes('localhost') && !connectionString.includes('127.0.0.1')
+    ? { rejectUnauthorized: false }
+    : false
+});
+
+function convertPlaceholders(sql: string): string {
+  let index = 1;
+  return sql.replace(/\?/g, () => `$${index++}`);
+}
+
+export interface DatabaseShim {
+  all: (text: string, ...params: any[]) => Promise<any[]>;
+  get: <T = any>(text: string, ...params: any[]) => Promise<T | null>;
+  run: (text: string, ...params: any[]) => Promise<{ lastID: any; changes: any }>;
+}
+
+let shimInstance: DatabaseShim | null = null;
+
+export async function getDb(): Promise<DatabaseShim> {
+  if (!shimInstance) {
+    shimInstance = {
+      all: async (text: string, ...params: any[]) => {
+        const parsedSql = convertPlaceholders(text);
+        const res = await pool.query(parsedSql, params);
+        return res.rows;
+      },
+      get: async (text: string, ...params: any[]) => {
+        const parsedSql = convertPlaceholders(text);
+        const res = await pool.query(parsedSql, params);
+        return res.rows[0] || null;
+      },
+      run: async (text: string, ...params: any[]) => {
+        const parsedSql = convertPlaceholders(text);
+        await pool.query(parsedSql, params);
+        return { lastID: null, changes: null };
+      }
+    };
   }
-  return dbPromise;
+  return shimInstance;
 }
 
 export async function initDb() {
-  const db = await getDb();
-  
-  // Create circles table
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS circles (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  // Create pins table
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS pins (
-      id TEXT PRIMARY KEY,
-      lat REAL NOT NULL,
-      lng REAL NOT NULL,
-      content TEXT NOT NULL,
-      image_url TEXT,
-      privacy_mode TEXT NOT NULL, -- 'public' or 'circle'
-      circle_id TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      memory_date TEXT NOT NULL,
-      likes_count INTEGER DEFAULT 0,
-      hugs_count INTEGER DEFAULT 0,
-      spotify_track_id TEXT,
-      people TEXT,
-      FOREIGN KEY(circle_id) REFERENCES circles(id)
-    );
-  `);
-
-  // Migration: Add spotify_track_id if table already existed
+  const client = await pool.connect();
   try {
-    await db.exec('ALTER TABLE pins ADD COLUMN spotify_track_id TEXT');
-  } catch (err) {
-    // Column already exists, safe to ignore
-  }
+    // Create circles table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS circles (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
 
-  // Migration: Add people if table already existed
-  try {
-    await db.exec('ALTER TABLE pins ADD COLUMN people TEXT');
-  } catch (err) {
-    // Column already exists, safe to ignore
-  }
+    // Create pins table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS pins (
+        id TEXT PRIMARY KEY,
+        lat DOUBLE PRECISION NOT NULL,
+        lng DOUBLE PRECISION NOT NULL,
+        content TEXT NOT NULL,
+        image_url TEXT,
+        privacy_mode TEXT NOT NULL,
+        circle_id TEXT REFERENCES circles(id) ON DELETE SET NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        memory_date TEXT NOT NULL,
+        likes_count INTEGER DEFAULT 0,
+        hugs_count INTEGER DEFAULT 0,
+        spotify_track_id TEXT,
+        people TEXT
+      );
+    `);
 
-  // Insert seed circles if they don't exist
-  const count = await db.get<{ count: number }>('SELECT COUNT(*) as count FROM circles');
-  if (count && count.count === 0) {
-    const seedCircles = [
-      { id: 'bogazici-cimler', name: 'Boğaziçi Çimleri 🍀' },
-      { id: 'bebek-sahili', name: 'Bebek Sahil Yolu 🌊' },
-      { id: 'hisarustu-kahve', name: 'Hisarüstü Kahve Sohbetleri ☕' }
-    ];
-    for (const c of seedCircles) {
-      await db.run('INSERT INTO circles (id, name) VALUES (?, ?)', c.id, c.name);
+    // Insert seed circles if they don't exist
+    const countRes = await client.query('SELECT COUNT(*) as count FROM circles');
+    const count = parseInt(countRes.rows[0].count, 10);
+    if (count === 0) {
+      const seedCircles = [
+        { id: 'bogazici-cimler', name: 'Boğaziçi Çimleri 🍀' },
+        { id: 'bebek-sahili', name: 'Bebek Sahil Yolu 🌊' },
+        { id: 'hisarustu-kahve', name: 'Hisarüstü Kahve Sohbetleri ☕' }
+      ];
+      for (const c of seedCircles) {
+        await client.query(
+          'INSERT INTO circles (id, name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING',
+          [c.id, c.name]
+        );
+      }
     }
+  } catch (err) {
+    console.error('Failed to run PostgreSQL schema setup:', err);
+    throw err;
+  } finally {
+    client.release();
   }
 }
