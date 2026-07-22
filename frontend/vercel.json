@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://your-backend-app.onrender.com/api/:path*"
+      "destination": "https://memory-box-backend.onrender.com/api/:path*"
     }
   ]
 }
