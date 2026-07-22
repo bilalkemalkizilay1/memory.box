@@ -18,6 +18,56 @@ interface NewPinModalProps {
   }) => Promise<void>;
 }
 
+const compressImage = (file: File): Promise<File> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+              }));
+            } else {
+              resolve(file);
+            }
+          },
+          'image/jpeg',
+          0.85
+        );
+      };
+    };
+  });
+};
+
 export const NewPinModal: React.FC<NewPinModalProps> = ({
   isOpen,
   onClose,
@@ -100,12 +150,17 @@ export const NewPinModal: React.FC<NewPinModalProps> = ({
     setLoading(true);
     setError(null);
     try {
+      let finalImage = image;
+      if (image) {
+        // Compress the image before uploading to bypass the 4.5MB server limit
+        finalImage = await compressImage(image);
+      }
       await onSubmit({
         content,
         privacy_mode: privacyMode,
         circle_id: privacyMode === 'circle' ? circleId : null,
         memory_date: memoryDate,
-        image,
+        image: finalImage,
         spotify_track_id: trackId,
         people: peopleList.length > 0 ? JSON.stringify(peopleList) : null
       });
