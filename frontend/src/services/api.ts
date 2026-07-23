@@ -112,7 +112,29 @@ export async function updatePin(id: string, data: {
   memory_date: string;
   spotify_track_id: string | null;
   people?: string | null;
+  image?: File | null;
 }): Promise<Pin> {
+  let imageUrl: string | null | undefined = undefined;
+
+  // 1. Upload new image if present
+  if (data.image) {
+    const uploadFormData = new FormData();
+    uploadFormData.append('file', data.image);
+
+    const uploadRes = await fetch(`${API_BASE}/media/upload`, {
+      method: 'POST',
+      headers: {
+        'X-Author-Token': getAuthorToken()
+      },
+      body: uploadFormData
+    });
+
+    if (!uploadRes.ok) throw new Error('Failed to upload memory image');
+    const uploadData = await uploadRes.json();
+    imageUrl = uploadData.url;
+  }
+
+  // 2. Submit memory update JSON data
   const res = await fetch(`${API_BASE}/pins/${id}`, {
     method: 'PUT',
     headers: {
@@ -126,7 +148,8 @@ export async function updatePin(id: string, data: {
       memory_date: data.memory_date,
       music_provider: data.spotify_track_id ? 'deezer' : null,
       music_track_id: data.spotify_track_id,
-      tagged_people: data.people ? JSON.parse(data.people) : []
+      tagged_people: data.people ? JSON.parse(data.people) : [],
+      ...(imageUrl !== undefined && { image_url: imageUrl })
     })
   });
 

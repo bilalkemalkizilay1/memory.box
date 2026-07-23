@@ -203,6 +203,19 @@ export default function App() {
     }
   };
 
+  // Helper helper to convert local base64 data to File object for uploading
+  const dataURLtoFile = (dataurl: string, filename: string): File => {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  };
+
   // Handle pin update/edit
   const handlePinUpdate = async (id: string, updatedData: {
     content: string;
@@ -211,26 +224,40 @@ export default function App() {
     memory_date: string;
     spotify_track_id: string | null;
     people: string | null;
+    image: File | null;
   }) => {
     const isPrivateBefore = privatePins.some(p => p.id === id);
     
     if (updatedData.privacy_mode === 'private') {
       if (isPrivateBefore) {
         // 1. Private -> Private: Update locally
-        const updated = privatePins.map(p => {
-          if (p.id === id) {
-            return {
-              ...p,
-              content: updatedData.content,
-              memory_date: updatedData.memory_date,
-              spotify_track_id: updatedData.spotify_track_id,
-              people: updatedData.people || null
-            };
-          }
-          return p;
-        });
-        setPrivatePins(updated);
-        localStorage.setItem('mb_private_pins', JSON.stringify(updated));
+        const updateLocalPin = (base64Image?: string) => {
+          const updated = privatePins.map(p => {
+            if (p.id === id) {
+              return {
+                ...p,
+                content: updatedData.content,
+                memory_date: updatedData.memory_date,
+                spotify_track_id: updatedData.spotify_track_id,
+                people: updatedData.people || null,
+                ...(base64Image !== undefined && { image_url: base64Image })
+              };
+            }
+            return p;
+          });
+          setPrivatePins(updated);
+          localStorage.setItem('mb_private_pins', JSON.stringify(updated));
+        };
+
+        if (updatedData.image) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            updateLocalPin(reader.result as string);
+          };
+          reader.readAsDataURL(updatedData.image);
+        } else {
+          updateLocalPin();
+        }
       } else {
         // 2. Server -> Private: Move from server list to local list
         const updatedPin = await api.updatePin(id, updatedData);
@@ -253,6 +280,16 @@ export default function App() {
         // 3. Private -> Server: Upload to server, remove from local
         const privatePin = privatePins.find(p => p.id === id);
         if (privatePin) {
+          let finalImage: File | null = updatedData.image;
+          // If no new image selected but the private pin had an image, convert its base64 to File
+          if (!finalImage && privatePin.image_url && privatePin.image_url.startsWith('data:')) {
+            try {
+              finalImage = dataURLtoFile(privatePin.image_url, 'published-photo.jpg');
+            } catch (e) {
+              console.error("Error converting base64 image during publish:", e);
+            }
+          }
+
           const savedPin = await api.createPin({
             lat: privatePin.lat,
             lng: privatePin.lng,
@@ -262,7 +299,7 @@ export default function App() {
             memory_date: updatedData.memory_date,
             spotify_track_id: updatedData.spotify_track_id,
             people: updatedData.people,
-            image: null
+            image: finalImage
           });
           setServerPins(prev => [savedPin, ...prev]);
           
@@ -465,6 +502,11 @@ export default function App() {
           onHug={handleHug}
           likesAndHugs={likesAndHugs}
           mapRef={mapRef}
+          myCreatedPinIds={myCreatedPinIds}
+          onEditPin={(pin) => {
+            setEditingPin(pin);
+            setIsEditModalOpen(true);
+          }}
         />
       </div>
 

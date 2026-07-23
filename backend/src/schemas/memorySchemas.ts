@@ -20,7 +20,8 @@ export const updateMemorySchema = z.object({
   memory_date: z.string(),
   music_provider: z.string().nullable().optional(),
   music_track_id: z.string().nullable().optional(),
-  tagged_people: z.array(z.string()).optional().default([])
+  tagged_people: z.array(z.string()).optional().default([]),
+  image_url: z.string().nullable().optional()
 });
 
 export const reactionSchema = z.object({

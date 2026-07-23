@@ -81,6 +81,7 @@ export const memoryService = {
       music_provider: string | null;
       music_track_id: string | null;
       tagged_people: string[];
+      image_url?: string | null;
     }
   ): Promise<Memory> => {
     const memory = await memoryRepository.findById(id);
@@ -99,7 +100,7 @@ export const memoryService = {
 
     const taggedPeopleJson = JSON.stringify(data.tagged_people || []);
     const formattedDate = formatToPostgresDate(data.memory_date);
-    return memoryRepository.update(
+    const updatedMemory = await memoryRepository.update(
       id,
       data.content,
       formattedDate,
@@ -109,6 +110,16 @@ export const memoryService = {
       data.music_track_id,
       taggedPeopleJson
     );
+
+    // If image_url is provided, update associated media items
+    if (data.image_url !== undefined) {
+      await memoryRepository.deleteMediaByMemoryId(id);
+      if (data.image_url) {
+        await memoryRepository.addMedia(uuidv4(), id, data.image_url, 'image', 0);
+      }
+    }
+
+    return updatedMemory;
   },
 
   deleteMemory: async (id: string, userId: string): Promise<void> => {

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Upload } from 'lucide-react';
 import { Circle, Pin } from '../types';
 
 interface EditPinModalProps {
@@ -15,8 +15,59 @@ interface EditPinModalProps {
     memory_date: string;
     spotify_track_id: string | null;
     people: string | null;
+    image: File | null;
   }) => Promise<void>;
 }
+
+const compressImage = (file: File): Promise<File> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+              }));
+            } else {
+              resolve(file);
+            }
+          },
+          'image/jpeg',
+          0.85
+        );
+      };
+    };
+  });
+};
 
 export const EditPinModal: React.FC<EditPinModalProps> = ({
   isOpen,
@@ -38,6 +89,22 @@ export const EditPinModal: React.FC<EditPinModalProps> = ({
   const [personInput, setPersonInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [image, setImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleAddPerson = () => {
     const name = personInput.trim();
@@ -63,6 +130,8 @@ export const EditPinModal: React.FC<EditPinModalProps> = ({
       setSelectedSong(null);
       setPeopleList(pin.people ? JSON.parse(pin.people) : []);
       setPersonInput('');
+      setImage(null);
+      setImagePreview(pin.image_url || null);
 
       // If pin has a song, fetch its details
       if (pin.spotify_track_id) {
@@ -110,13 +179,18 @@ export const EditPinModal: React.FC<EditPinModalProps> = ({
     setLoading(true);
     setError(null);
     try {
+      let finalImage = image;
+      if (image) {
+        finalImage = await compressImage(image);
+      }
       await onSubmit(pin.id, {
         content,
         privacy_mode: privacyMode,
         circle_id: privacyMode === 'circle' ? circleId : null,
         memory_date: memoryDate,
         spotify_track_id: selectedSong ? selectedSong.id : null,
-        people: peopleList.length > 0 ? JSON.stringify(peopleList) : null
+        people: peopleList.length > 0 ? JSON.stringify(peopleList) : null,
+        image: finalImage
       });
       onClose();
     } catch (err) {
@@ -440,6 +514,31 @@ export const EditPinModal: React.FC<EditPinModalProps> = ({
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Fotoğraf Güncelle</label>
+            <div 
+              className="file-upload-container"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input 
+                type="file"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                accept="image/*"
+                onChange={handleFileChange}
+              />
+              {imagePreview ? (
+                <img src={imagePreview} alt="Preview" className="file-upload-preview" />
+              ) : (
+                <>
+                  <Upload className="file-upload-icon" />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Tıklayıp Fotoğraf Seçin</span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Maksimum 1 görsel</span>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="form-buttons">

@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 're
 import L from 'leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import { Pin } from '../types';
-import { Heart, X, Crosshair, Lock, Users, Globe, Calendar, User, Smile, Play, Pause } from 'lucide-react';
+import { Heart, X, Crosshair, Lock, Users, Globe, Calendar, User, Smile, Play, Pause, Edit3, Navigation } from 'lucide-react';
 import { fetchSongDetails } from '../services/api';
 
 interface MapComponentProps {
@@ -15,6 +15,8 @@ interface MapComponentProps {
   onHug: (id: string) => Promise<void>;
   likesAndHugs: Record<string, { liked: boolean; hugged: boolean }>;
   mapRef: React.MutableRefObject<any>;
+  myCreatedPinIds: string[];
+  onEditPin: (pin: Pin) => void;
 }
 
 interface TrackPlayerProps {
@@ -227,7 +229,9 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   onLike,
   onHug,
   likesAndHugs,
-  mapRef
+  mapRef,
+  myCreatedPinIds,
+  onEditPin
 }) => {
   const initialPosition: [number, number] = [41.028, 29.000]; // Central Istanbul / Bosphorus
   const [centerCoords, setCenterCoords] = useState<{ lat: number; lng: number }>({ lat: 41.028, lng: 29.000 });
@@ -248,6 +252,38 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+
+  const handleLocateUser = () => {
+    if (!navigator.geolocation) {
+      setGpsError("Tarayıcınız konum servislerini desteklemiyor.");
+      return;
+    }
+
+    setGpsError(null);
+    setGpsAccuracy(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+        setGpsAccuracy(Math.round(accuracy));
+        
+        if (mapRef.current) {
+          mapRef.current.setView([latitude, longitude], 15.5);
+        }
+      },
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          setGpsError("Konum izni reddedildi. Haritada gezerek manuel pin bırakabilirsiniz.");
+        } else {
+          setGpsError("Konum belirlenirken hata oluştu.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+  };
 
   // Function to trigger floating heart micro-animation
   const triggerReactionAnimation = (e: React.MouseEvent) => {
@@ -398,6 +434,20 @@ export const MapComponent: React.FC<MapComponentProps> = ({
                         <Smile size={14} />
                         <span>Sarıl ({pin.hugs_count || 0})</span>
                       </button>
+
+                      {(pin.id.startsWith('local-') || myCreatedPinIds.includes(pin.id)) && (
+                        <button 
+                          className="memory-action-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditPin(pin);
+                          }}
+                          style={{ color: 'var(--text-active)' }}
+                        >
+                          <Edit3 size={14} />
+                          <span>Düzenle</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </Popup>
@@ -461,6 +511,53 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           ❤️
         </span>
       ))}
+
+      {/* Geolocation Banners (Accuracy or Errors) */}
+      {gpsError && (
+        <div className="gps-status-banner" style={{ borderLeft: '3px solid var(--color-public)', pointerEvents: 'auto' }}>
+          <span>⚠️ {gpsError}</span>
+          <button 
+            onClick={() => setGpsError(null)} 
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem', marginLeft: '0.5rem' }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {gpsAccuracy !== null && gpsAccuracy > 50 && (
+        <div className="gps-status-banner" style={{ borderLeft: '3px solid #dd6b20', pointerEvents: 'auto' }}>
+          <span>⚠️ Düşük GPS Hassasiyeti ({gpsAccuracy}m). İhtiyaç halinde pin yerini manuel ortalayın.</span>
+          <button 
+            onClick={() => setGpsAccuracy(null)} 
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem', marginLeft: '0.5rem' }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {gpsAccuracy !== null && gpsAccuracy <= 50 && (
+        <div className="gps-status-banner" style={{ borderLeft: '3px solid var(--color-circle)', pointerEvents: 'auto' }}>
+          <span>✅ Konum doğrulandı (Hassasiyet: {gpsAccuracy}m).</span>
+          <button 
+            onClick={() => setGpsAccuracy(null)} 
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem', marginLeft: '0.5rem' }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Locate Me Floating Button */}
+      <button 
+        type="button" 
+        className="map-locate-btn" 
+        onClick={handleLocateUser}
+        title="Konumumu Bul"
+      >
+        <Navigation size={20} />
+      </button>
 
       {/* Mobile Bottom Sheet Overlay */}
       {isMobile && selectedMobilePin && (() => {
@@ -559,6 +656,22 @@ export const MapComponent: React.FC<MapComponentProps> = ({
                     <Smile size={16} />
                     <span>Sarıl ({pin.hugs_count || 0})</span>
                   </button>
+
+                  {(pin.id.startsWith('local-') || myCreatedPinIds.includes(pin.id)) && (
+                    <button 
+                      className="memory-action-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedMobilePin(null);
+                        setOpenPinId(null);
+                        onEditPin(pin);
+                      }}
+                      style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', flex: 1, justifyContent: 'center', color: 'var(--text-active)' }}
+                    >
+                      <Edit3 size={16} />
+                      <span>Düzenle</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

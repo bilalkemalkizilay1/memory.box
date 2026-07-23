@@ -1146,3 +1146,52 @@ body {
   }
 }
 
+/* Locate Button and GPS Status Banners */
+.map-locate-btn {
+  position: absolute;
+  bottom: 85px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #FAF8F5;
+  border: 1px solid rgba(44, 44, 44, 0.12);
+  box-shadow: 0 4px 12px rgba(44, 44, 44, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1000;
+  color: var(--text-main);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.map-locate-btn:hover {
+  transform: scale(1.08);
+  background: #ffffff;
+  color: var(--text-active);
+}
+
+.gps-status-banner {
+  position: absolute;
+  top: 85px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1001;
+  background: rgba(250, 248, 245, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(44, 44, 44, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 30px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(44, 44, 44, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  animation: fadeIn 0.25s ease-out;
+  pointer-events: auto;
+  color: var(--text-main);
+}
+

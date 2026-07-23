@@ -132,5 +132,10 @@ export const memoryRepository = {
   findMediaByMemoryId: async (memoryId: string): Promise<Media[]> => {
     const db = await getDb();
     return db.all('SELECT * FROM media WHERE memory_id = ? ORDER BY display_order ASC', memoryId);
+  },
+
+  deleteMediaByMemoryId: async (memoryId: string): Promise<void> => {
+    const db = await getDb();
+    await db.run('DELETE FROM media WHERE memory_id = ?', memoryId);
   }
 };
