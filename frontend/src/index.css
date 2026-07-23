@@ -456,7 +456,7 @@ body {
   line-height: 1.35;
   color: #2C2C2C;
   white-space: pre-wrap;
-  max-height: 140px;
+  max-height: 280px;
   overflow-y: auto;
   margin-bottom: 1rem;
 }
