@@ -125,6 +125,54 @@ export default function App() {
     loadServerPins();
   }, [joinedCircles]);
 
+  // Sync queued offline pins when internet is restored
+  useEffect(() => {
+    const handleOnlineSync = async () => {
+      const queue = localStorage.getItem('mb_pending_sync_queue');
+      if (!queue) return;
+      const pendingPins = JSON.parse(queue);
+      if (pendingPins.length === 0) return;
+
+      console.log(`Syncing ${pendingPins.length} offline pins...`);
+      const remaining: any[] = [];
+
+      for (const pin of pendingPins) {
+        try {
+          await api.createPin({
+            lat: pin.lat,
+            lng: pin.lng,
+            content: pin.content,
+            privacy_mode: pin.privacy_mode,
+            circle_id: pin.circle_id,
+            memory_date: pin.memory_date,
+            spotify_track_id: pin.spotify_track_id,
+            people: pin.people,
+            image: null
+          });
+        } catch (err) {
+          console.error("Failed to sync offline pin, keeping in queue:", err);
+          remaining.push(pin);
+        }
+      }
+
+      localStorage.setItem('mb_pending_sync_queue', JSON.stringify(remaining));
+      
+      // Reload server pins to replace temporary local IDs with actual database IDs
+      loadServerPins();
+      
+      if (remaining.length === 0) {
+        alert("✅ Çevrimdışı kaydedilen tüm anılarınız başarıyla sunucuya yüklendi!");
+      }
+    };
+
+    window.addEventListener('online', handleOnlineSync);
+    // Also trigger on mount if online
+    if (navigator.onLine) {
+      handleOnlineSync();
+    }
+    return () => window.removeEventListener('online', handleOnlineSync);
+  }, [joinedCircles]);
+
   // Pan map to specific pin
   const handlePanToPin = (pin: Pin) => {
     if (mapRef.current) {
@@ -157,6 +205,43 @@ export default function App() {
     spotify_track_id: string | null;
     people: string | null;
   }) => {
+    const queueOfflinePin = () => {
+      const offlinePin: Pin = {
+        id: `offline-${Date.now()}`,
+        lat: pinCoords.lat,
+        lng: pinCoords.lng,
+        content: data.content,
+        privacy_mode: data.privacy_mode,
+        circle_id: data.circle_id,
+        created_at: new Date().toISOString(),
+        memory_date: data.memory_date,
+        likes_count: 0,
+        hugs_count: 0,
+        spotify_track_id: null,
+        people: data.people || null,
+        image_url: null
+      };
+      
+      setServerPins(prev => [offlinePin, ...prev]);
+      setMyCreatedPinIds(prev => [...prev, offlinePin.id]);
+      
+      const currentQueue = localStorage.getItem('mb_pending_sync_queue');
+      const queueList = currentQueue ? JSON.parse(currentQueue) : [];
+      queueList.push({
+        lat: pinCoords.lat,
+        lng: pinCoords.lng,
+        content: data.content,
+        privacy_mode: data.privacy_mode,
+        circle_id: data.circle_id,
+        memory_date: data.memory_date,
+        spotify_track_id: null,
+        people: data.people
+      });
+      localStorage.setItem('mb_pending_sync_queue', JSON.stringify(queueList));
+      
+      alert("🔌 İnternet bağlantısı yok. Anınız yerel olarak kaydedildi ve bağlandığınızda yüklenecektir.");
+    };
+
     if (data.privacy_mode === 'private') {
       // Local storage only
       const newPrivatePin: Pin = {
@@ -186,20 +271,30 @@ export default function App() {
         setPrivatePins(prev => [newPrivatePin, ...prev]);
       }
     } else {
-      // Server upload with decoupled media flow
-      const savedPin = await api.createPin({
-        lat: pinCoords.lat,
-        lng: pinCoords.lng,
-        content: data.content,
-        privacy_mode: data.privacy_mode,
-        circle_id: data.circle_id,
-        memory_date: data.memory_date,
-        spotify_track_id: data.spotify_track_id,
-        people: data.people,
-        image: data.image
-      });
-      setServerPins(prev => [savedPin, ...prev]);
-      setMyCreatedPinIds(prev => [...prev, savedPin.id]);
+      if (!navigator.onLine) {
+        queueOfflinePin();
+        return;
+      }
+
+      try {
+        // Server upload with decoupled media flow
+        const savedPin = await api.createPin({
+          lat: pinCoords.lat,
+          lng: pinCoords.lng,
+          content: data.content,
+          privacy_mode: data.privacy_mode,
+          circle_id: data.circle_id,
+          memory_date: data.memory_date,
+          spotify_track_id: data.spotify_track_id,
+          people: data.people,
+          image: data.image
+        });
+        setServerPins(prev => [savedPin, ...prev]);
+        setMyCreatedPinIds(prev => [...prev, savedPin.id]);
+      } catch (err) {
+        console.warn("API pin submission failed, queuing offline:", err);
+        queueOfflinePin();
+      }
     }
   };
 
@@ -319,44 +414,55 @@ export default function App() {
     }
   };
 
-  // Interactions (Like)
   const handleLike = async (id: string) => {
     const interaction = likesAndHugs[id] || { liked: false, hugged: false };
-    if (interaction.liked) return; // already liked
+    if (interaction.liked) return;
 
-    // local-only pin check
+    // 1. Optimistic Update
+    setLikesAndHugs(prev => ({ ...prev, [id]: { ...interaction, liked: true } }));
     if (id.startsWith('local-')) {
-      setPrivatePins(prev => prev.map(p => p.id === id ? { ...p, likes_count: p.likes_count + 1 } : p));
-      setLikesAndHugs(prev => ({ ...prev, [id]: { ...interaction, liked: true } }));
+      setPrivatePins(prev => prev.map(p => p.id === id ? { ...p, likes_count: (p.likes_count || 0) + 1 } : p));
       return;
     }
 
+    setServerPins(prev => prev.map(p => p.id === id ? { ...p, likes_count: (p.likes_count || 0) + 1 } : p));
+
+    // 2. Background API Call
     try {
       const res = await api.likePin(id);
+      // Sync exact server count
       setServerPins(prev => prev.map(p => p.id === id ? { ...p, likes_count: res.likes_count } : p));
-      setLikesAndHugs(prev => ({ ...prev, [id]: { ...interaction, liked: true } }));
     } catch (err) {
-      console.error(err);
+      console.warn("Optimistic Like failed, rolling back:", err);
+      // 3. Rollback
+      setLikesAndHugs(prev => ({ ...prev, [id]: { ...interaction, liked: false } }));
+      setServerPins(prev => prev.map(p => p.id === id ? { ...p, likes_count: Math.max(0, (p.likes_count || 0) - 1) } : p));
     }
   };
 
-  // Interactions (Hug)
   const handleHug = async (id: string) => {
     const interaction = likesAndHugs[id] || { liked: false, hugged: false };
-    if (interaction.hugged) return; // already hugged
+    if (interaction.hugged) return;
 
+    // 1. Optimistic Update
+    setLikesAndHugs(prev => ({ ...prev, [id]: { ...interaction, hugged: true } }));
     if (id.startsWith('local-')) {
-      setPrivatePins(prev => prev.map(p => p.id === id ? { ...p, hugs_count: p.hugs_count + 1 } : p));
-      setLikesAndHugs(prev => ({ ...prev, [id]: { ...interaction, hugged: true } }));
+      setPrivatePins(prev => prev.map(p => p.id === id ? { ...p, hugs_count: (p.hugs_count || 0) + 1 } : p));
       return;
     }
 
+    setServerPins(prev => prev.map(p => p.id === id ? { ...p, hugs_count: (p.hugs_count || 0) + 1 } : p));
+
+    // 2. Background API Call
     try {
       const res = await api.hugPin(id);
+      // Sync exact server count
       setServerPins(prev => prev.map(p => p.id === id ? { ...p, hugs_count: res.hugs_count } : p));
-      setLikesAndHugs(prev => ({ ...prev, [id]: { ...interaction, hugged: true } }));
     } catch (err) {
-      console.error(err);
+      console.warn("Optimistic Hug failed, rolling back:", err);
+      // 3. Rollback
+      setLikesAndHugs(prev => ({ ...prev, [id]: { ...interaction, hugged: false } }));
+      setServerPins(prev => prev.map(p => p.id === id ? { ...p, hugs_count: Math.max(0, (p.hugs_count || 0) - 1) } : p));
     }
   };
 

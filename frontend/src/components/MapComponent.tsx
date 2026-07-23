@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
@@ -221,6 +221,25 @@ const CenterTracker: React.FC<{
   return null;
 };
 
+// Helper component to track viewport bounds for culling off-screen markers
+const MapBoundsTracker: React.FC<{ 
+  setVisibleBounds: (bounds: L.LatLngBounds) => void 
+}> = ({ setVisibleBounds }) => {
+  const map = useMap();
+
+  useMapEvents({
+    moveend: () => {
+      setVisibleBounds(map.getBounds());
+    }
+  });
+
+  useEffect(() => {
+    setVisibleBounds(map.getBounds());
+  }, [map, setVisibleBounds]);
+
+  return null;
+};
+
 export const MapComponent: React.FC<MapComponentProps> = ({
   pins,
   isPinningMode,
@@ -285,6 +304,16 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     );
   };
 
+  const [visibleBounds, setVisibleBounds] = useState<L.LatLngBounds | null>(null);
+
+  // Filter pins dynamically to show only those visible inside the active map bounds (viewport culling)
+  const filteredPins = useMemo(() => {
+    if (!visibleBounds) return pins;
+    return pins.filter(pin => {
+      return visibleBounds.contains([pin.lat, pin.lng]);
+    });
+  }, [pins, visibleBounds]);
+
   // Function to trigger floating heart micro-animation
   const triggerReactionAnimation = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -320,6 +349,8 @@ export const MapComponent: React.FC<MapComponentProps> = ({
         
         <CenterTracker isPinningMode={isPinningMode} setCenterCoords={setCenterCoords} />
 
+        <MapBoundsTracker setVisibleBounds={setVisibleBounds} />
+
         {/* Marker Clustering */}
         <MarkerClusterGroup
           chunkedLoading
@@ -327,7 +358,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           showCoverageOnHover={false}
           maxClusterRadius={40}
         >
-          {pins.map(pin => {
+          {filteredPins.map(pin => {
             const hasLiked = likesAndHugs[pin.id]?.liked || false;
             const hasHugged = likesAndHugs[pin.id]?.hugged || false;
 
