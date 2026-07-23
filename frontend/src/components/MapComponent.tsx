@@ -234,6 +234,21 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   const [hearts, setHearts] = useState<{ id: number; x: number; y: number }[]>([]);
   const [openPinId, setOpenPinId] = useState<string | null>(null);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [selectedMobilePin, setSelectedMobilePin] = useState<Pin | null>(null);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (!mobile) {
+        setSelectedMobilePin(null);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Function to trigger floating heart micro-animation
   const triggerReactionAnimation = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -285,17 +300,28 @@ export const MapComponent: React.FC<MapComponentProps> = ({
                 key={pin.id}
                 position={[pin.lat, pin.lng]}
                 icon={createCustomIcon(pin.privacy_mode)}
-              >
-                <Popup 
-                  autoPan={true} 
-                  autoPanPaddingTopLeft={[0, 200]}
-                  eventHandlers={{
-                    add: () => setOpenPinId(pin.id),
-                    remove: () => {
-                      setOpenPinId(prev => prev === pin.id ? null : prev);
+                eventHandlers={{
+                  click: () => {
+                    if (isMobile) {
+                      setSelectedMobilePin(pin);
+                      setOpenPinId(pin.id);
+                    } else {
+                      setOpenPinId(pin.id);
                     }
-                  }}
-                >
+                  }
+                }}
+              >
+                {!isMobile && (
+                  <Popup 
+                    autoPan={true} 
+                    autoPanPaddingTopLeft={[0, 200]}
+                    eventHandlers={{
+                      add: () => setOpenPinId(pin.id),
+                      remove: () => {
+                        setOpenPinId(prev => prev === pin.id ? null : prev);
+                      }
+                    }}
+                  >
                   <div className="memory-popup-card">
                     <div className="memory-popup-body">
                       <div className="memory-popup-text-column">
@@ -375,8 +401,9 @@ export const MapComponent: React.FC<MapComponentProps> = ({
                     </div>
                   </div>
                 </Popup>
-              </Marker>
-            );
+              )}
+            </Marker>
+          );
           })}
         </MarkerClusterGroup>
       </MapContainer>
@@ -434,6 +461,110 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           ❤️
         </span>
       ))}
+
+      {/* Mobile Bottom Sheet Overlay */}
+      {isMobile && selectedMobilePin && (() => {
+        const pin = selectedMobilePin;
+        const hasLiked = likesAndHugs[pin.id]?.liked || false;
+        const hasHugged = likesAndHugs[pin.id]?.hugged || false;
+        
+        return (
+          <div className="mobile-bottom-sheet-overlay" onClick={() => {
+            setSelectedMobilePin(null);
+            setOpenPinId(null);
+          }}>
+            <div className="mobile-bottom-sheet-content" onClick={(e) => e.stopPropagation()}>
+              <div className="bottom-sheet-drag-handle" onClick={() => {
+                setSelectedMobilePin(null);
+                setOpenPinId(null);
+              }}></div>
+              
+              <div className="memory-popup-card" style={{ transform: 'none', padding: 0, boxShadow: 'none', border: 'none', background: 'transparent' }}>
+                <div className="memory-popup-body" style={{ flexDirection: 'column', gap: '1rem' }}>
+                  <div className="memory-popup-text-column">
+                    <div className="memory-popup-text" style={{ maxHeight: 'none', fontSize: '1.25rem' }}>{pin.content}</div>
+                    
+                    <div className="memory-popup-meta" style={{ flexDirection: 'row', gap: '1rem', flexWrap: 'wrap' }}>
+                      <span className="memory-popup-tag" style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                        {pin.privacy_mode === 'private' && <><Lock size={12} /> Günlük</>}
+                        {pin.privacy_mode === 'circle' && <><Users size={12} /> Çember</>}
+                        {pin.privacy_mode === 'public' && <><Globe size={12} /> Açık</>}
+                      </span>
+                      <span className="memory-popup-date" style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                        <Calendar size={12} /> {new Date(pin.memory_date).toLocaleDateString('tr-TR')}
+                      </span>
+                    </div>
+
+                    {pin.people && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.65rem' }}>
+                        {JSON.parse(pin.people).map((person: string) => (
+                          <span 
+                            key={person} 
+                            style={{ 
+                              fontSize: '0.72rem', 
+                              fontWeight: 600, 
+                              background: 'rgba(90, 103, 216, 0.08)', 
+                              color: 'var(--text-active)', 
+                              padding: '0.2rem 0.6rem', 
+                              borderRadius: '12px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.15rem'
+                            }}
+                          >
+                            <User size={10} /> {person}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {pin.image_url && (
+                    <div className="memory-popup-image-column" style={{ width: '100%', height: '200px' }}>
+                      <img 
+                        src={pin.image_url} 
+                        alt="Pin" 
+                        className="memory-popup-image" 
+                        style={{ width: '100%', height: '100%', borderRadius: '12px', objectFit: 'cover' }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {pin.spotify_track_id && (
+                  <TrackPlayer trackId={pin.spotify_track_id} isOpen={openPinId === pin.id} />
+                )}
+
+                <div className="memory-popup-actions" style={{ marginTop: '1.5rem', justifyContent: 'space-around' }}>
+                  <button 
+                    className={`memory-action-btn ${hasLiked ? 'active-like' : ''}`}
+                    onClick={(e) => {
+                      triggerReactionAnimation(e);
+                      onLike(pin.id);
+                    }}
+                    style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', flex: 1, justifyContent: 'center' }}
+                  >
+                    <Heart size={16} fill={hasLiked ? 'var(--color-public)' : 'none'} />
+                    <span>Beğen ({pin.likes_count || 0})</span>
+                  </button>
+
+                  <button 
+                    className={`memory-action-btn ${hasHugged ? 'active-hug' : ''}`}
+                    onClick={(e) => {
+                      triggerReactionAnimation(e);
+                      onHug(pin.id);
+                    }}
+                    style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', flex: 1, justifyContent: 'center' }}
+                  >
+                    <Smile size={16} />
+                    <span>Sarıl ({pin.hugs_count || 0})</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
