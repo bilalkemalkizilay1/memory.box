@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Upload } from 'lucide-react';
 import { Circle } from '../types';
 
@@ -91,6 +91,27 @@ export const NewPinModal: React.FC<NewPinModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset form inputs when the modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setContent('');
+      setPrivacyMode('public');
+      setCircleId(joinedCircles[0]?.id || null);
+      setMemoryDate(new Date().toISOString().substring(0, 10));
+      setImage(null);
+      setImagePreview(null);
+      setSongQuery('');
+      setSearchResults([]);
+      setSelectedSong(null);
+      setPeopleList([]);
+      setPersonInput('');
+      setError(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }, [isOpen, joinedCircles]);
 
   const handleAddPerson = () => {
     const name = personInput.trim();
