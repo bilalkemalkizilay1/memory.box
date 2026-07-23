@@ -79,8 +79,14 @@ export async function initDb() {
         likes_count INTEGER DEFAULT 0,
         hugs_count INTEGER DEFAULT 0,
         spotify_track_id TEXT,
-        people TEXT
+        people TEXT,
+        author_token TEXT
       );
+    `);
+
+    // Run schema migration for existing databases
+    await client.query(`
+      ALTER TABLE pins ADD COLUMN IF NOT EXISTS author_token TEXT;
     `);
 
     // Insert seed circles if they don't exist

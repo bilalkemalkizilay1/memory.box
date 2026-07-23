@@ -97,11 +97,12 @@ app.post('/api/pins', upload.single('image'), async (req: Request, res: Response
       imageUrl = publicUrl;
     }
 
+    const authorToken = req.headers['x-author-token'] as string || req.body.author_token as string || null;
     const pinId = uuidv4();
     const db = await getDb();
     await db.run(
-      `INSERT INTO pins (id, lat, lng, content, image_url, privacy_mode, circle_id, memory_date, spotify_track_id, people) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO pins (id, lat, lng, content, image_url, privacy_mode, circle_id, memory_date, spotify_track_id, people, author_token) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       pinId,
       parseFloat(lat),
       parseFloat(lng),
@@ -111,7 +112,8 @@ app.post('/api/pins', upload.single('image'), async (req: Request, res: Response
       circle_id || null,
       memory_date,
       spotify_track_id || null,
-      people || null
+      people || null,
+      authorToken
     );
 
     const newPin = await db.get('SELECT * FROM pins WHERE id = ?', pinId);
@@ -255,6 +257,7 @@ app.put('/api/pins/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { content, memory_date, privacy_mode, circle_id, spotify_track_id, people } = req.body;
+    const authorToken = req.headers['x-author-token'] as string || req.body.author_token as string || null;
 
     if (!content || !privacy_mode || !memory_date) {
        res.status(400).json({ error: 'Missing required fields' });
@@ -266,6 +269,14 @@ app.put('/api/pins/:id', async (req: Request, res: Response): Promise<void> => {
     const pin = await db.get('SELECT * FROM pins WHERE id = ?', id);
     if (!pin) {
        res.status(404).json({ error: 'Pin not found' });
+       return;
+    }
+
+    // Authorization check: allow if pin has no token (legacy data),
+    // or if client token matches pin author_token, or if it matches ADMIN_TOKEN
+    const adminToken = process.env.ADMIN_TOKEN || 'admin-super-secret-token';
+    if (pin.author_token && authorToken !== pin.author_token && authorToken !== adminToken) {
+       res.status(403).json({ error: 'Unauthorized: You are not the author of this memory.' });
        return;
     }
 
@@ -287,6 +298,33 @@ app.put('/api/pins/:id', async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     console.error('Error updating pin:', error);
     res.status(500).json({ error: 'Server error updating pin' });
+  }
+});
+
+// 9. Delete a pin (Secured)
+app.delete('/api/pins/:id', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const authorToken = req.headers['x-author-token'] as string || req.query.author_token as string || null;
+    const db = await getDb();
+
+    const pin = await db.get('SELECT * FROM pins WHERE id = ?', id);
+    if (!pin) {
+       res.status(404).json({ error: 'Pin not found' });
+       return;
+    }
+
+    const adminToken = process.env.ADMIN_TOKEN || 'admin-super-secret-token';
+    if (pin.author_token && authorToken !== pin.author_token && authorToken !== adminToken) {
+       res.status(403).json({ error: 'Unauthorized: You are not the author of this memory.' });
+       return;
+    }
+
+    await db.run('DELETE FROM pins WHERE id = ?', id);
+    res.json({ success: true, message: 'Memory deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting pin:', error);
+    res.status(500).json({ error: 'Server error deleting pin' });
   }
 });
 
