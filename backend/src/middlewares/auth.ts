@@ -8,7 +8,17 @@ export interface AuthRequest extends Request {
 
 export const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
+    // Bypass auth check for preflight CORS OPTIONS requests
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(200);
+      return;
+    }
+
     const token = req.headers['x-author-token'] as string;
+    
+    // Debug logging to verify token transmission
+    console.log(`[Auth] Request Path: ${req.path}, Method: ${req.method}, Token Present: ${!!token}`);
+
     if (!token) {
       res.status(401).json({ error: 'Kimlik doğrulama tokenı (X-Author-Token) eksik' });
       return;

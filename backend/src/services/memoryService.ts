@@ -3,6 +3,22 @@ import { reactionRepository } from '../repositories/reactionRepository';
 import { Memory } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
+function formatToPostgresDate(dateStr: string): string {
+  // If format is DD.MM.YYYY (e.g. 22.03.2026), convert to YYYY-MM-DD
+  const dotParts = dateStr.split('.');
+  if (dotParts.length === 3 && dotParts[2].length === 4) {
+    return `${dotParts[2]}-${dotParts[1]}-${dotParts[0]}`;
+  }
+  
+  // If format is DD/MM/YYYY (e.g. 22/03/2026), convert to YYYY-MM-DD
+  const slashParts = dateStr.split('/');
+  if (slashParts.length === 3 && slashParts[2].length === 4) {
+    return `${slashParts[2]}-${slashParts[1]}-${slashParts[0]}`;
+  }
+  
+  return dateStr;
+}
+
 export const memoryService = {
   createMemory: async (
     userId: string,
@@ -21,6 +37,7 @@ export const memoryService = {
   ): Promise<any> => {
     const memoryId = uuidv4();
     const taggedPeopleJson = JSON.stringify(data.tagged_people || []);
+    const formattedDate = formatToPostgresDate(data.memory_date);
 
     const memory = await memoryRepository.create(
       memoryId,
@@ -30,7 +47,7 @@ export const memoryService = {
       data.content,
       data.privacy_mode,
       data.circle_id,
-      data.memory_date,
+      formattedDate,
       data.music_provider,
       data.music_track_id,
       taggedPeopleJson
@@ -81,10 +98,11 @@ export const memoryService = {
     }
 
     const taggedPeopleJson = JSON.stringify(data.tagged_people || []);
+    const formattedDate = formatToPostgresDate(data.memory_date);
     return memoryRepository.update(
       id,
       data.content,
-      data.memory_date,
+      formattedDate,
       data.privacy_mode,
       data.circle_id,
       data.music_provider,
