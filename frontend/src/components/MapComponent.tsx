@@ -229,8 +229,8 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   likesAndHugs,
   mapRef
 }) => {
-  const initialPosition: [number, number] = [41.0836, 29.0511]; // Boğaziçi University
-  const [centerCoords, setCenterCoords] = useState<{ lat: number; lng: number }>({ lat: 41.0836, lng: 29.0511 });
+  const initialPosition: [number, number] = [41.028, 29.000]; // Central Istanbul / Bosphorus
+  const [centerCoords, setCenterCoords] = useState<{ lat: number; lng: number }>({ lat: 41.028, lng: 29.000 });
   const [hearts, setHearts] = useState<{ id: number; x: number; y: number }[]>([]);
   const [openPinId, setOpenPinId] = useState<string | null>(null);
 
@@ -251,7 +251,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     <div className="map-container-wrapper">
       <MapContainer
         center={initialPosition}
-        zoom={15}
+        zoom={12.5}
         zoomControl={true}
         zoomSnap={0.5}
         zoomDelta={0.5}

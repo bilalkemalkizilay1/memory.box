@@ -133,7 +133,7 @@ export default function App() {
   const handleGeneralMapClick = () => {
     setSelectedCircleId(null);
     if (mapRef.current) {
-      mapRef.current.setView([41.0836, 29.0511], 15);
+      mapRef.current.setView([41.028, 29.000], 12.5);
     }
   };
 

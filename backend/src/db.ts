@@ -84,8 +84,10 @@ export async function initDb() {
       );
     `);
 
-    // Run schema migration for existing databases
+    // Run schema migrations for existing databases to ensure all columns exist
     await client.query(`
+      ALTER TABLE pins ADD COLUMN IF NOT EXISTS spotify_track_id TEXT;
+      ALTER TABLE pins ADD COLUMN IF NOT EXISTS people TEXT;
       ALTER TABLE pins ADD COLUMN IF NOT EXISTS author_token TEXT;
     `);
 
