@@ -76,9 +76,13 @@ export default function App() {
     return Array.from(peopleSet);
   }, [serverPins, privatePins]);
 
-  // Write changes to LocalStorage
+  // Write changes to LocalStorage and sync profile with server
   useEffect(() => {
     localStorage.setItem('mb_profile', JSON.stringify(userProfile));
+    if (userProfile) {
+      api.syncProfile(userProfile.name, userProfile.email)
+        .catch(err => console.error("Failed to sync profile with server:", err));
+    }
   }, [userProfile]);
 
   useEffect(() => {
@@ -182,19 +186,18 @@ export default function App() {
         setPrivatePins(prev => [newPrivatePin, ...prev]);
       }
     } else {
-      // Server upload
-      const formData = new FormData();
-      formData.append('lat', pinCoords.lat.toString());
-      formData.append('lng', pinCoords.lng.toString());
-      formData.append('content', data.content);
-      formData.append('privacy_mode', data.privacy_mode);
-      formData.append('memory_date', data.memory_date);
-      if (data.circle_id) formData.append('circle_id', data.circle_id);
-      if (data.spotify_track_id) formData.append('spotify_track_id', data.spotify_track_id);
-      if (data.people) formData.append('people', data.people);
-      if (data.image) formData.append('image', data.image);
-
-      const savedPin = await api.createPin(formData);
+      // Server upload with decoupled media flow
+      const savedPin = await api.createPin({
+        lat: pinCoords.lat,
+        lng: pinCoords.lng,
+        content: data.content,
+        privacy_mode: data.privacy_mode,
+        circle_id: data.circle_id,
+        memory_date: data.memory_date,
+        spotify_track_id: data.spotify_track_id,
+        people: data.people,
+        image: data.image
+      });
       setServerPins(prev => [savedPin, ...prev]);
       setMyCreatedPinIds(prev => [...prev, savedPin.id]);
     }
@@ -250,17 +253,17 @@ export default function App() {
         // 3. Private -> Server: Upload to server, remove from local
         const privatePin = privatePins.find(p => p.id === id);
         if (privatePin) {
-          const formData = new FormData();
-          formData.append('lat', privatePin.lat.toString());
-          formData.append('lng', privatePin.lng.toString());
-          formData.append('content', updatedData.content);
-          formData.append('privacy_mode', updatedData.privacy_mode);
-          formData.append('memory_date', updatedData.memory_date);
-          if (updatedData.circle_id) formData.append('circle_id', updatedData.circle_id);
-          if (updatedData.spotify_track_id) formData.append('spotify_track_id', updatedData.spotify_track_id);
-          if (updatedData.people) formData.append('people', updatedData.people);
-          
-          const savedPin = await api.createPin(formData);
+          const savedPin = await api.createPin({
+            lat: privatePin.lat,
+            lng: privatePin.lng,
+            content: updatedData.content,
+            privacy_mode: updatedData.privacy_mode,
+            circle_id: updatedData.circle_id,
+            memory_date: updatedData.memory_date,
+            spotify_track_id: updatedData.spotify_track_id,
+            people: updatedData.people,
+            image: null
+          });
           setServerPins(prev => [savedPin, ...prev]);
           
           // Remove from local private pins
