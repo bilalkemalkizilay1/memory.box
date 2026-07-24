@@ -446,6 +446,12 @@ export const NewPinModal: React.FC<NewPinModalProps> = ({
                   </button>
                 </div>
 
+                {searching && (
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontStyle: 'italic' }}>
+                    🎵 Şarkılar aranıyor (İlk aramada sunucu uyanıyorsa 30-40 saniye sürebilir)...
+                  </div>
+                )}
+
                 {searchResults.length > 0 && (
                   <div style={{ 
                     maxHeight: '180px', 
@@ -607,12 +613,21 @@ export const NewPinModal: React.FC<NewPinModalProps> = ({
             <label className="form-label">Fotoğraf Ekle</label>
             <div 
               className="file-upload-container"
-              onClick={() => fileInputRef.current?.click()}
+              style={{ position: 'relative' }}
             >
               <input 
                 type="file"
                 ref={fileInputRef}
-                style={{ display: 'none' }}
+                style={{ 
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  opacity: 0,
+                  cursor: 'pointer',
+                  zIndex: 10
+                }}
                 accept="image/*"
                 onChange={handleFileChange}
               />

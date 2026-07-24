@@ -125,6 +125,19 @@ export default function App() {
     loadServerPins();
   }, [joinedCircles]);
 
+  // Warm up backend cold start on mount
+  useEffect(() => {
+    fetch('/api/profile/sync', {
+      headers: {
+        'X-Author-Token': localStorage.getItem('mb_author_token') || 'warmup-token'
+      }
+    }).then(() => {
+      console.log('Backend server warmed up successfully.');
+    }).catch(err => {
+      console.warn('Backend warm up failed:', err);
+    });
+  }, []);
+
   // Sync queued offline pins when internet is restored
   useEffect(() => {
     const handleOnlineSync = async () => {
