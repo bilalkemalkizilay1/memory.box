@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
@@ -596,7 +597,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
         const hasLiked = likesAndHugs[pin.id]?.liked || false;
         const hasHugged = likesAndHugs[pin.id]?.hugged || false;
         
-        return (
+        return ReactDOM.createPortal(
           <div className="mobile-bottom-sheet-overlay" onClick={() => {
             setSelectedMobilePin(null);
             setOpenPinId(null);
@@ -706,7 +707,8 @@ export const MapComponent: React.FC<MapComponentProps> = ({
                 </div>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         );
       })()}
     </div>
