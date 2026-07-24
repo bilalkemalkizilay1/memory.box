@@ -55,18 +55,10 @@ export async function getDb(): Promise<DatabaseShim> {
 export async function initDb() {
   const client = await pool.connect();
   try {
-    console.log("Dropping old database tables if they exist...");
-    await client.query('DROP TABLE IF EXISTS memory_reactions CASCADE;');
-    await client.query('DROP TABLE IF EXISTS media CASCADE;');
-    await client.query('DROP TABLE IF EXISTS memories CASCADE;');
-    await client.query('DROP TABLE IF EXISTS circle_memberships CASCADE;');
-    await client.query('DROP TABLE IF EXISTS circles CASCADE;');
-    await client.query('DROP TABLE IF EXISTS users CASCADE;');
-
-    console.log("Creating new production database tables...");
+    console.log("Initializing database tables (safe mode - no drops)...");
     // 1. Users Table
     await client.query(`
-      CREATE TABLE users (
+      CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         email TEXT,
@@ -78,7 +70,7 @@ export async function initDb() {
 
     // 2. Circles Table
     await client.query(`
-      CREATE TABLE circles (
+      CREATE TABLE IF NOT EXISTS circles (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -88,7 +80,7 @@ export async function initDb() {
 
     // 3. Circle Memberships Table
     await client.query(`
-      CREATE TABLE circle_memberships (
+      CREATE TABLE IF NOT EXISTS circle_memberships (
         circle_id TEXT REFERENCES circles(id) ON DELETE CASCADE,
         user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
         role TEXT NOT NULL DEFAULT 'member',
@@ -100,7 +92,7 @@ export async function initDb() {
 
     // 4. Memories Table
     await client.query(`
-      CREATE TABLE memories (
+      CREATE TABLE IF NOT EXISTS memories (
         id TEXT PRIMARY KEY,
         user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
         lat DOUBLE PRECISION NOT NULL,
@@ -120,7 +112,7 @@ export async function initDb() {
 
     // 5. Media Table
     await client.query(`
-      CREATE TABLE media (
+      CREATE TABLE IF NOT EXISTS media (
         id TEXT PRIMARY KEY,
         memory_id TEXT REFERENCES memories(id) ON DELETE CASCADE,
         url TEXT NOT NULL,
@@ -133,7 +125,7 @@ export async function initDb() {
 
     // 6. Memory Reactions Table
     await client.query(`
-      CREATE TABLE memory_reactions (
+      CREATE TABLE IF NOT EXISTS memory_reactions (
         id TEXT PRIMARY KEY,
         memory_id TEXT REFERENCES memories(id) ON DELETE CASCADE,
         user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
