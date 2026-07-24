@@ -53,17 +53,12 @@ export const memoryService = {
       taggedPeopleJson
     );
 
-    let mediaItems: any[] = [];
     if (data.image_url) {
       const mediaId = uuidv4();
-      const media = await memoryRepository.addMedia(mediaId, memoryId, data.image_url, 'image', 0);
-      mediaItems.push(media);
+      await memoryRepository.addMedia(mediaId, memoryId, data.image_url, 'image', 0);
     }
 
-    return {
-      ...memory,
-      media: mediaItems
-    };
+    return memoryRepository.findByIdFull(memoryId, userId);
   },
 
   listMemories: async (userId: string, circleIds: string[]): Promise<any[]> => {
@@ -119,7 +114,7 @@ export const memoryService = {
       }
     }
 
-    return updatedMemory;
+    return memoryRepository.findByIdFull(id, userId);
   },
 
   deleteMemory: async (id: string, userId: string): Promise<void> => {

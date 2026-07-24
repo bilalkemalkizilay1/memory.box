@@ -137,5 +137,22 @@ export const memoryRepository = {
   deleteMediaByMemoryId: async (memoryId: string): Promise<void> => {
     const db = await getDb();
     await db.run('DELETE FROM media WHERE memory_id = ?', memoryId);
+  },
+
+  findByIdFull: async (id: string, userId: string): Promise<any> => {
+    const db = await getDb();
+    const query = `
+      SELECT m.*, u.name as author_name,
+             (SELECT COUNT(*) FROM memory_reactions mr WHERE mr.memory_id = m.id AND mr.reaction_type = 'like') as likes_count,
+             (SELECT COUNT(*) FROM memory_reactions mr WHERE mr.memory_id = m.id AND mr.reaction_type = 'hug') as hugs_count,
+             COALESCE(
+               (SELECT json_agg(json_build_object('id', med.id, 'url', med.url, 'type', med.type, 'display_order', med.display_order) ORDER BY med.display_order)
+                FROM media med WHERE med.memory_id = m.id), '[]'::json
+             ) as media
+      FROM memories m
+      LEFT JOIN users u ON m.user_id = u.id
+      WHERE m.id = ? AND m.deleted_at IS NULL
+    `;
+    return db.get(query, id);
   }
 };
