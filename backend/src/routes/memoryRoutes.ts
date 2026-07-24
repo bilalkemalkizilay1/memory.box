@@ -8,6 +8,7 @@ const router = Router();
 
 router.post('/', authMiddleware, validate(createMemorySchema), memoryController.createMemory);
 router.get('/', authMiddleware, memoryController.listMemories);
+router.get('/reverse-geocode', authMiddleware, memoryController.reverseGeocode);
 router.put('/:id', authMiddleware, validate(updateMemorySchema), memoryController.updateMemory);
 router.delete('/:id', authMiddleware, memoryController.deleteMemory);
 router.post('/:id/reactions', authMiddleware, validate(reactionSchema), memoryController.toggleReaction);

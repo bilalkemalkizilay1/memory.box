@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import exifr from 'exifr';
 import { Sidebar } from './components/Sidebar';
 import { MapComponent } from './components/MapComponent';
 import { DiaryPanel } from './components/DiaryPanel';
@@ -7,7 +8,7 @@ import { SenPanel } from './components/SenPanel';
 import { HakkindaPanel } from './components/HakkindaPanel';
 import { NewPinModal } from './components/NewPinModal';
 import { EditPinModal } from './components/EditPinModal';
-import { Search, User } from 'lucide-react';
+import { Search, User, Plus, Camera, X, Edit3 } from 'lucide-react';
 import { Pin, Circle } from './types';
 import * as api from './services/api';
 
@@ -53,6 +54,14 @@ export default function App() {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingPin, setEditingPin] = useState<Pin | null>(null);
+
+  // Prefilled states for Photo-First Vision (v2)
+  const [showMediaSelector, setShowMediaSelector] = useState(false);
+  const [prefilledPhoto, setPrefilledPhoto] = useState<File | null>(null);
+  const [prefilledPhotoPreview, setPrefilledPhotoPreview] = useState<string | null>(null);
+  const [prefilledCoords, setPrefilledCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [prefilledDate, setPrefilledDate] = useState<string | null>(null);
+  const [prefilledAddress, setPrefilledAddress] = useState<string | null>(null);
 
   // Server pins (public and circle pins)
   const [serverPins, setServerPins] = useState<Pin[]>([]);
@@ -202,8 +211,89 @@ export default function App() {
     }
   };
 
+  const handleMediaFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setShowMediaSelector(false);
+    setPrefilledPhoto(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPrefilledPhotoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    let lat: number | null = null;
+    let lng: number | null = null;
+    let dateStr: string | null = null;
+
+    try {
+      // 1. Read EXIF GPS data using exifr
+      const gps = await exifr.gps(file);
+      if (gps && gps.latitude && gps.longitude) {
+        lat = gps.latitude;
+        lng = gps.longitude;
+      }
+
+      // 2. Read EXIF DateTimeOriginal
+      const exif = await exifr.parse(file, ['DateTimeOriginal']);
+      if (exif && exif.DateTimeOriginal) {
+        const d = new Date(exif.DateTimeOriginal);
+        dateStr = d.toISOString().substring(0, 10);
+      }
+    } catch (err) {
+      console.warn("Failed to extract EXIF metadata:", err);
+    }
+
+    if (lat && lng) {
+      setPrefilledCoords({ lat, lng });
+      setPinCoords({ lat, lng }); // keep map pin position sync
+      try {
+        const res = await fetch(`/api/pins/reverse-geocode?lat=${lat}&lng=${lng}`);
+        if (res.ok) {
+          const data = await res.json();
+          setPrefilledAddress(data.label);
+        }
+      } catch (err) {
+        console.warn("Reverse geocode failed:", err);
+        setPrefilledAddress(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+      }
+    } else {
+      setPrefilledCoords(null);
+      // Fallback: use map center or current GPS position
+      const center = mapRef.current ? mapRef.current.getCenter() : { lat: 41.028, lng: 29.000 };
+      setPinCoords({ lat: center.lat, lng: center.lng });
+      setPrefilledAddress("Konum bulunamadı, manuel seçin");
+    }
+
+    if (dateStr) {
+      setPrefilledDate(dateStr);
+    } else {
+      setPrefilledDate(new Date().toISOString().substring(0, 10));
+    }
+
+    setShowPinModal(true);
+  };
+
+  const openTextOnlyCreation = () => {
+    setPrefilledPhoto(null);
+    setPrefilledPhotoPreview(null);
+    setPrefilledCoords(null);
+    const center = mapRef.current ? mapRef.current.getCenter() : { lat: 41.028, lng: 29.000 };
+    setPinCoords({ lat: center.lat, lng: center.lng });
+    setPrefilledAddress("Konum seçin");
+    setPrefilledDate(new Date().toISOString().substring(0, 10));
+    setShowPinModal(true);
+  };
   const handleConfirmPinLocation = (lat: number, lng: number) => {
+    setPrefilledPhoto(null);
+    setPrefilledPhotoPreview(null);
+    setPrefilledCoords(null);
     setPinCoords({ lat, lng });
+    setPrefilledAddress("Konum onaylandı");
+    setPrefilledDate(new Date().toISOString().substring(0, 10));
     setIsPinningMode(false);
     setShowPinModal(true);
   };
@@ -217,8 +307,8 @@ export default function App() {
     image: File | null;
     spotify_track_id: string | null;
     people: string | null;
-  }) => {
-    const queueOfflinePin = () => {
+  }): Promise<Pin> => {
+    const queueOfflinePin = (): Pin => {
       const offlinePin: Pin = {
         id: `offline-${Date.now()}`,
         lat: pinCoords.lat,
@@ -253,6 +343,7 @@ export default function App() {
       localStorage.setItem('mb_pending_sync_queue', JSON.stringify(queueList));
       
       alert("🔌 İnternet bağlantısı yok. Anınız yerel olarak kaydedildi ve bağlandığınızda yüklenecektir.");
+      return offlinePin;
     };
 
     if (data.privacy_mode === 'private') {
@@ -283,10 +374,10 @@ export default function App() {
       } else {
         setPrivatePins(prev => [newPrivatePin, ...prev]);
       }
+      return newPrivatePin;
     } else {
       if (!navigator.onLine) {
-        queueOfflinePin();
-        return;
+        return queueOfflinePin();
       }
 
       try {
@@ -304,9 +395,10 @@ export default function App() {
         });
         setServerPins(prev => [savedPin, ...prev]);
         setMyCreatedPinIds(prev => [...prev, savedPin.id]);
+        return savedPin;
       } catch (err) {
         console.warn("API pin submission failed, queuing offline:", err);
-        queueOfflinePin();
+        return queueOfflinePin();
       }
     }
   };
@@ -676,6 +768,11 @@ export default function App() {
         joinedCircles={joinedCircles}
         existingPeople={allUniquePeople}
         onSubmit={handlePinSubmit}
+        prefilledPhoto={prefilledPhoto}
+        prefilledPhotoPreview={prefilledPhotoPreview}
+        prefilledCoords={prefilledCoords}
+        prefilledDate={prefilledDate}
+        prefilledAddress={prefilledAddress}
       />
 
       {/* Edit Pin Modal */}
@@ -690,6 +787,78 @@ export default function App() {
         existingPeople={allUniquePeople}
         onSubmit={handlePinUpdate}
       />
+
+      {/* Floating Action Button (FAB) for Photo-First Flow */}
+      <button 
+        type="button" 
+        className="fab-btn" 
+        onClick={() => setShowMediaSelector(true)}
+        title="Anı Ekle"
+      >
+        <Plus size={24} />
+      </button>
+
+      {/* Media Selector Overlay */}
+      {showMediaSelector && (
+        <div className="media-selector-overlay" onClick={() => setShowMediaSelector(false)}>
+          <div className="media-selector-content" onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontFamily: 'var(--font-title)', color: 'var(--text-dark)' }}>Anı Ekle</h3>
+              <button 
+                onClick={() => setShowMediaSelector(false)} 
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Input file for photos */}
+            <div style={{ position: 'relative' }}>
+              <input 
+                type="file"
+                accept="image/*"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  opacity: 0,
+                  cursor: 'pointer',
+                  zIndex: 10
+                }}
+                onChange={handleMediaFileSelected}
+              />
+              <button type="button" className="media-selector-option">
+                <span className="media-selector-option-icon">
+                  <Camera size={20} />
+                </span>
+                <div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 600 }}>Fotoğraf Çek / Galeriden Seç</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 400 }}>EXIF konum ve zaman bilgisi otomatik okunur</div>
+                </div>
+              </button>
+            </div>
+
+            <button 
+              type="button" 
+              className="media-selector-option"
+              onClick={() => {
+                setShowMediaSelector(false);
+                openTextOnlyCreation();
+              }}
+            >
+              <span className="media-selector-option-icon">
+                <Edit3 size={20} />
+              </span>
+              <div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 600 }}>Sadece Yazı Yaz</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 400 }}>Konumu harita üzerinden manuel seçin</div>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

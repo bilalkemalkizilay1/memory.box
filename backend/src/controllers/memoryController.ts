@@ -55,6 +55,43 @@ export const memoryController = {
     }
   },
 
+  reverseGeocode: async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const { lat, lng } = req.query;
+      if (!lat || !lng) {
+        res.status(400).json({ error: 'lat ve lng parametreleri gereklidir.' });
+        return;
+      }
+
+      const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'MemoryBoxApp/1.0 (kemal@memorybox.com)'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Nominatim reverse geocoding failed');
+      }
+
+      const data = await response.json();
+      const address = data.address || {};
+      
+      const road = address.road || '';
+      const suburb = address.suburb || address.neighbourhood || '';
+      const town = address.town || address.city_district || '';
+      const city = address.city || address.province || address.state || '';
+      
+      const parts = [road, suburb, town, city].filter(Boolean);
+      const label = parts.slice(0, 3).join(', ') || data.display_name || 'Bilinmeyen Konum';
+
+      res.json({ label, display_name: data.display_name, address });
+    } catch (error: any) {
+      console.error('Error in reverseGeocode:', error);
+      res.status(500).json({ error: 'Adres çözümlenirken hata oluştu.' });
+    }
+  },
+
   deleteMemory: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const user = req.user;
