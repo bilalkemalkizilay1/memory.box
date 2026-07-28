@@ -227,7 +227,6 @@ export default function DesktopApp() {
         onSubmit={(data) => { triggerPinSubmit(data, handlePinSubmit); return Promise.resolve(editingPin as Memory); }}
         prefilledPhotos={prefilledData.photos}
         prefilledPhotoPreviews={prefilledData.photoPreviews}
-        prefilledAddress={prefilledData.address}
       />
 
       {extractionStatus !== 'idle' && (

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { EXIFService } from '@services/EXIFService';
 import { MemoryCreationData } from '@services/MemoryCreationService';
 import { Memory } from '@shared/types/types';

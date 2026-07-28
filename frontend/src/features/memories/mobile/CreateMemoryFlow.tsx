@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import L from 'leaflet';
-import { X, Music, User, Lock, Edit3 } from 'lucide-react';
+import { X, Music, User, Lock, Edit3, Globe } from 'lucide-react';
 import { Circle, Memory } from '@/shared/types/types';
 import * as api from '@/shared/api/api';
 import toast from 'react-hot-toast';

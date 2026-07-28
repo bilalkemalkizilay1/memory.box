@@ -23,7 +23,7 @@ export const HeroPreview: React.FC<HeroPreviewProps> = ({ status, photoUrl }) =>
         )}
         
         <div className="hero-preview-status-container">
-          <div className={`hero-status-item ${status !== 'idle' ? 'active' : ''}`}>
+          <div className={`hero-status-item active`}>
             {status === 'reading_photo' ? <span className="spinner">⏳</span> : <CheckCircle size={16} color="#4ade80" />}
             <p>{COPY.heroPreparing}</p>
           </div>
