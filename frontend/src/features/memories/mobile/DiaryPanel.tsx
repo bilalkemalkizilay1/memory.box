@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, LogIn, ShieldCheck, BookOpen } from 'lucide-react';
+import { LogIn, ShieldCheck, BookOpen } from 'lucide-react';
 import { Memory } from '@/shared/types/types';
 
 interface DiaryPanelProps {
@@ -13,7 +13,7 @@ interface DiaryPanelProps {
 
 export const DiaryPanel: React.FC<DiaryPanelProps> = ({
   isOpen,
-  onClose,
+  onClose: _onClose,
   privatePins,
   onPinClick,
   userProfile,
@@ -37,13 +37,8 @@ export const DiaryPanel: React.FC<DiaryPanelProps> = ({
   };
 
   return (
-    <div className={`mobile-screen ${isOpen ? 'open' : ''}`}>
-      <div className="panel-header">
-        <h2 className="panel-title">Günlük</h2>
-        <button className="panel-close-btn" onClick={onClose}>
-          <X size={20} />
-        </button>
-      </div>
+    <div className={`mobile-page ${isOpen ? 'open' : ''}`}>
+      <h1 className="mobile-large-title">Günlük</h1>
 
       {!userProfile ? (
         <div className="auth-panel" style={{ overflowY: 'auto' }}>
@@ -126,7 +121,7 @@ export const DiaryPanel: React.FC<DiaryPanelProps> = ({
           </button>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+        <div className="mobile-page-content" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '1rem', borderBottom: '1px solid var(--border-color)', marginBottom: '1rem' }}>
             <div>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Giriş yapıldı:</p>

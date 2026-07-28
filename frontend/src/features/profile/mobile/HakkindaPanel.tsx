@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Lock, Users, Eye } from 'lucide-react';
+import { Lock, Users, Eye, ArrowLeft } from 'lucide-react';
 
 interface HakkindaPanelProps {
   isOpen: boolean;
@@ -8,15 +8,15 @@ interface HakkindaPanelProps {
 
 export const HakkindaPanel: React.FC<HakkindaPanelProps> = ({ isOpen, onClose }) => {
   return (
-    <div className={`mobile-screen ${isOpen ? 'open' : ''}`}>
-      <div className="panel-header">
-        <h2 className="panel-title">Hakkında</h2>
-        <button className="panel-close-btn" onClick={onClose}>
-          <X size={20} />
+    <div className={`mobile-page ${isOpen ? 'open' : ''}`}>
+      <div style={{ display: 'flex', alignItems: 'center', padding: '0 var(--mobile-spacing-md)', marginTop: 'calc(var(--mobile-safe-top) + var(--mobile-spacing-md))', marginBottom: 'var(--mobile-spacing-md)' }}>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', padding: 'var(--mobile-spacing-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--mobile-accent)' }}>
+          <ArrowLeft size={24} />
         </button>
+        <h1 className="mobile-title" style={{ margin: 0, marginLeft: 'var(--mobile-spacing-sm)' }}>Hakkında</h1>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', overflowY: 'auto' }}>
+      <div className="mobile-page-content" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mobile-spacing-md)' }}>
         <p style={{ fontWeight: 600, fontSize: '0.98rem', color: 'var(--text-active)' }}>
           Spatial Memory & Location-Based Journaling Platform
         </p>

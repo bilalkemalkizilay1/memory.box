@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, UserPlus, Copy, Check, Users } from 'lucide-react';
+import { Plus, UserPlus, Copy, Check, Users } from 'lucide-react';
 import { Circle } from '@/shared/types/types';
 import { createCircle, fetchCircle } from '@/shared/api/api';
 
@@ -14,7 +14,7 @@ interface CirclesPanelProps {
 
 export const CirclesPanel: React.FC<CirclesPanelProps> = ({
   isOpen,
-  onClose,
+  onClose: _onClose,
   joinedCircles,
   setJoinedCircles,
   selectedCircleId,
@@ -72,15 +72,10 @@ export const CirclesPanel: React.FC<CirclesPanelProps> = ({
   };
 
   return (
-    <div className={`mobile-screen ${isOpen ? 'open' : ''}`}>
-      <div className="panel-header">
-        <h2 className="panel-title">Çemberler</h2>
-        <button className="panel-close-btn" onClick={onClose}>
-          <X size={20} />
-        </button>
-      </div>
+    <div className={`mobile-page ${isOpen ? 'open' : ''}`}>
+      <h1 className="mobile-large-title">Çemberler</h1>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', overflowY: 'auto', flexGrow: 1, paddingRight: '4px' }}>
+      <div className="mobile-page-content" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mobile-spacing-lg)' }}>
         <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
           Sevgiliniz, aileniz veya en yakın arkadaş grubunuzla paylaştığınız konum bazlı anı kutuları oluşturun ya da davet koduyla katılın.
         </p>

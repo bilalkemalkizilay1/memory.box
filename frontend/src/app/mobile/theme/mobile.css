@@ -1,0 +1,256 @@
+/* 
+  Phase C: Mobile Design System
+  Single source of truth for mobile screens (Apple HIG & Material 3 inspired).
+  Do NOT use these variables for desktop. 
+*/
+
+:root {
+  /* Colors */
+  --mobile-bg: #F2F2F7;         /* iOS style grouped background */
+  --mobile-surface: #FFFFFF;    /* Clean white for list items/cards */
+  --mobile-text-main: #000000;
+  --mobile-text-secondary: #8A8A8E;
+  --mobile-text-tertiary: #C7C7CC;
+  --mobile-accent: #C24B3B;     /* Terracotta red */
+  
+  --mobile-border: rgba(60, 60, 67, 0.13); /* iOS separator color */
+
+  /* Spacing (8pt system) */
+  --mobile-spacing-xs: 4px;
+  --mobile-spacing-sm: 8px;
+  --mobile-spacing-md: 16px;
+  --mobile-spacing-lg: 24px;
+  --mobile-spacing-xl: 32px;
+  --mobile-spacing-xxl: 48px;
+
+  /* Touch Targets & Dimensions */
+  --mobile-touch-target: 44px;
+  --mobile-input-height: 48px;
+  --mobile-button-height: 48px;
+  --mobile-header-height: 56px;
+
+  /* Radius */
+  --mobile-radius-sm: 8px;
+  --mobile-radius-md: 12px;
+  --mobile-radius-lg: 16px;
+  --mobile-radius-full: 9999px;
+
+  /* Typography (UI Sans-Serif only) */
+  --mobile-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  /* Safe Area / Insets */
+  --mobile-safe-top: env(safe-area-inset-top, 44px);
+  --mobile-safe-bottom: env(safe-area-inset-bottom, 34px);
+}
+
+/* =========================================
+   Layout Primitives (Structural Classes)
+========================================= */
+
+/* The full viewport screen wrapper */
+.mobile-page {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100vw;
+  height: 100dvh;
+  background-color: var(--mobile-bg);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease-out;
+  font-family: var(--mobile-font);
+  color: var(--mobile-text-main);
+}
+
+.mobile-page.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Scrollable content area */
+.mobile-page-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 var(--mobile-spacing-md) var(--mobile-spacing-xxl);
+}
+
+/* =========================================
+   Typography Classes
+========================================= */
+
+.mobile-large-title {
+  font-family: var(--mobile-font);
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--mobile-text-main);
+  margin-top: calc(var(--mobile-safe-top) + var(--mobile-spacing-lg));
+  margin-bottom: var(--mobile-spacing-lg);
+  padding: 0 var(--mobile-spacing-md);
+}
+
+.mobile-title {
+  font-family: var(--mobile-font);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  margin-bottom: var(--mobile-spacing-sm);
+}
+
+.mobile-headline {
+  font-family: var(--mobile-font);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+}
+
+.mobile-body {
+  font-family: var(--mobile-font);
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: -0.4px;
+  line-height: 1.4;
+  color: var(--mobile-text-secondary);
+}
+
+.mobile-caption {
+  font-family: var(--mobile-font);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: -0.1px;
+  color: var(--mobile-text-secondary);
+}
+
+/* =========================================
+   List Items (Apple Settings Inspired)
+========================================= */
+
+.mobile-list {
+  background: var(--mobile-surface);
+  border-radius: var(--mobile-radius-md);
+  margin-bottom: var(--mobile-spacing-lg);
+  overflow: hidden;
+}
+
+.mobile-list-item {
+  display: flex;
+  align-items: center;
+  padding: var(--mobile-spacing-md);
+  min-height: var(--mobile-touch-target);
+  background: var(--mobile-surface);
+  border-bottom: 0.5px solid var(--mobile-border);
+  cursor: pointer;
+}
+
+.mobile-list-item:last-child {
+  border-bottom: none;
+}
+
+.mobile-list-item:active {
+  background: #E5E5EA; /* iOS selection color */
+}
+
+.mobile-list-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+.mobile-list-title {
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--mobile-text-main);
+}
+
+.mobile-list-subtitle {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--mobile-text-secondary);
+}
+
+.mobile-list-icon {
+  margin-right: var(--mobile-spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+.mobile-list-chevron {
+  color: var(--mobile-text-tertiary);
+  margin-left: var(--mobile-spacing-sm);
+}
+
+/* =========================================
+   Inputs & Forms
+========================================= */
+
+.mobile-input-group {
+  margin-bottom: var(--mobile-spacing-md);
+}
+
+.mobile-input {
+  width: 100%;
+  height: var(--mobile-input-height);
+  background: var(--mobile-surface);
+  border: 0.5px solid var(--mobile-border);
+  border-radius: var(--mobile-radius-md);
+  padding: 0 var(--mobile-spacing-md);
+  font-family: var(--mobile-font);
+  font-size: 17px;
+  color: var(--mobile-text-main);
+}
+
+.mobile-input::placeholder {
+  color: var(--mobile-text-tertiary);
+}
+
+/* =========================================
+   Buttons
+========================================= */
+
+.mobile-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: var(--mobile-button-height);
+  border-radius: var(--mobile-radius-md);
+  font-family: var(--mobile-font);
+  font-size: 17px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  padding: 0 var(--mobile-spacing-md);
+  transition: opacity 0.2s;
+}
+
+.mobile-button:active {
+  opacity: 0.7;
+}
+
+.mobile-button-primary {
+  background: var(--mobile-accent);
+  color: #FFF;
+}
+
+.mobile-button-secondary {
+  background: var(--mobile-surface);
+  color: var(--mobile-accent);
+  border: 1px solid var(--mobile-border);
+}
+
+.mobile-button-ghost {
+  background: transparent;
+  color: var(--mobile-accent);
+}

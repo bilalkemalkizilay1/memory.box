@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, User, Heart, ShieldCheck, Share2, Award, PenTool, Calendar } from 'lucide-react';
+import { User, Heart, ShieldCheck, Share2, Award, PenTool, Calendar } from 'lucide-react';
 import { Memory } from '@/shared/types/types';
 
 interface SenPanelProps {
@@ -14,7 +14,7 @@ interface SenPanelProps {
 
 export const SenPanel: React.FC<SenPanelProps> = ({
   isOpen,
-  onClose,
+  onClose: _onClose,
   publicAndCirclePins,
   privatePins,
   myCreatedPinIds,
@@ -35,15 +35,10 @@ export const SenPanel: React.FC<SenPanelProps> = ({
   ].sort((a, b) => new Date(b.memory_date).getTime() - new Date(a.memory_date).getTime());
 
   return (
-    <div className={`mobile-screen ${isOpen ? 'open' : ''}`}>
-      <div className="panel-header">
-        <h2 className="panel-title">Sen (Profil)</h2>
-        <button className="panel-close-btn" onClick={onClose}>
-          <X size={20} />
-        </button>
-      </div>
+    <div className={`mobile-page ${isOpen ? 'open' : ''}`}>
+      <h1 className="mobile-large-title">Sen (Profil)</h1>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', overflowY: 'auto', height: 'calc(100% - 60px)', paddingBottom: '2rem' }}>
+      <div className="mobile-page-content" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mobile-spacing-lg)', overflowY: 'auto', height: 'calc(100% - 60px)', paddingBottom: '2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: '#F1ECE4', borderRadius: '12px', border: '1px dashed rgba(44, 44, 44, 0.18)' }}>
           <div style={{ background: 'var(--text-active)', color: '#ffffff', width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <User size={24} />

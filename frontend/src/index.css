@@ -1,3 +1,5 @@
+@import './app/mobile/theme/mobile.css';
+
 :root {
   --font-title: 'Lora', 'Playfair Display', Georgia, serif;
   --font-ui: 'Outfit', system-ui, -apple-system, sans-serif;
