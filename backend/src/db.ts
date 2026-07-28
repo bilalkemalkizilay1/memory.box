@@ -64,9 +64,19 @@ export async function initDb() {
       );
     `);
 
-    // Create pins table
+    // Rename pins to memories if it exists
     await client.query(`
-      CREATE TABLE IF NOT EXISTS pins (
+      DO $$
+      BEGIN
+        IF EXISTS(SELECT * FROM information_schema.tables WHERE table_name = 'pins') THEN
+          ALTER TABLE pins RENAME TO memories;
+        END IF;
+      END $$;
+    `);
+
+    // Create memories table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS memories (
         id TEXT PRIMARY KEY,
         lat DOUBLE PRECISION NOT NULL,
         lng DOUBLE PRECISION NOT NULL,
@@ -78,17 +88,43 @@ export async function initDb() {
         memory_date TEXT NOT NULL,
         likes_count INTEGER DEFAULT 0,
         hugs_count INTEGER DEFAULT 0,
-        spotify_track_id TEXT,
-        people TEXT,
-        author_token TEXT
+        music_provider TEXT,
+        music_track_id TEXT,
+        tagged_people TEXT,
+        user_id TEXT
+      );
+    `);
+
+    // Create memory_media table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS memory_media (
+        id TEXT PRIMARY KEY,
+        memory_id TEXT REFERENCES memories(id) ON DELETE CASCADE,
+        url TEXT NOT NULL,
+        type TEXT NOT NULL,
+        display_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
     // Run schema migrations for existing databases to ensure all columns exist
     await client.query(`
-      ALTER TABLE pins ADD COLUMN IF NOT EXISTS spotify_track_id TEXT;
-      ALTER TABLE pins ADD COLUMN IF NOT EXISTS people TEXT;
-      ALTER TABLE pins ADD COLUMN IF NOT EXISTS author_token TEXT;
+      ALTER TABLE memories ADD COLUMN IF NOT EXISTS music_provider TEXT;
+      ALTER TABLE memories ADD COLUMN IF NOT EXISTS music_track_id TEXT;
+      ALTER TABLE memories ADD COLUMN IF NOT EXISTS tagged_people TEXT;
+      ALTER TABLE memories ADD COLUMN IF NOT EXISTS user_id TEXT;
+    `);
+
+    // Migrate existing image_url data to memory_media if needed
+    await client.query(`
+      INSERT INTO memory_media (id, memory_id, url, type, display_order)
+      SELECT gen_random_uuid()::text, id, image_url, 'image', 0
+      FROM memories
+      WHERE image_url IS NOT NULL 
+        AND image_url != ''
+        AND NOT EXISTS (
+          SELECT 1 FROM memory_media WHERE memory_media.memory_id = memories.id
+        );
     `);
 
     // Insert seed circles if they don't exist

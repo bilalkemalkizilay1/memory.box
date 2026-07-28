@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Plus, UserPlus, Copy, Check, Users } from 'lucide-react';
-import { Circle } from '../types';
-import { createCircle, fetchCircle } from '../services/api';
+import { Circle } from '@/shared/types/types';
+import { createCircle, fetchCircle } from '@/shared/api/api';
 
 interface CirclesPanelProps {
   isOpen: boolean;
@@ -166,3 +166,5 @@ export const CirclesPanel: React.FC<CirclesPanelProps> = ({
     </div>
   );
 };
+
+

@@ -73,3 +73,5 @@ export const HakkindaPanel: React.FC<HakkindaPanelProps> = ({ isOpen, onClose })
     </div>
   );
 };
+
+

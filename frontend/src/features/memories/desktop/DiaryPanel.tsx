@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { X, LogIn, ShieldCheck, BookOpen } from 'lucide-react';
-import { Pin } from '../types';
+import { Memory } from '@/shared/types/types';
 
 interface DiaryPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  privatePins: Pin[];
-  onPinClick: (pin: Pin) => void;
+  privatePins: Memory[];
+  onPinClick: (memory: Memory) => void;
   userProfile: { name: string; email: string } | null;
   setUserProfile: (profile: { name: string; email: string } | null) => void;
 }
@@ -150,18 +150,18 @@ export const DiaryPanel: React.FC<DiaryPanelProps> = ({
                 <p style={{ fontSize: '0.78rem', marginTop: '0.25rem' }}>Sol menüdeki "+ Yeni Anı" butonunu kullanarak "Sadece Ben" modunda anı ekleyebilirsiniz.</p>
               </div>
             ) : (
-              privatePins.map(pin => (
+              privatePins.map(memory => (
                 <div 
-                  key={pin.id} 
+                  key={memory.id} 
                   className="circle-card" 
-                  onClick={() => onPinClick(pin)}
+                  onClick={() => onPinClick(memory)}
                   style={{ borderLeft: '4px solid var(--color-private)' }}
                 >
-                  <div className="circle-card-title">{pin.content.substring(0, 30)}{pin.content.length > 30 ? '...' : ''}</div>
-                  <div className="circle-card-desc">{pin.content}</div>
+                  <div className="circle-card-title">{memory.content.substring(0, 30)}{memory.content.length > 30 ? '...' : ''}</div>
+                  <div className="circle-card-desc">{memory.content}</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    <span>📅 {new Date(pin.memory_date).toLocaleDateString('tr-TR')}</span>
-                    <span>📍 {pin.lat.toFixed(4)}, {pin.lng.toFixed(4)}</span>
+                    <span>📅 {new Date(memory.memory_date).toLocaleDateString('tr-TR')}</span>
+                    <span>📍 {memory.lat.toFixed(4)}, {memory.lng.toFixed(4)}</span>
                   </div>
                 </div>
               ))
@@ -172,3 +172,5 @@ export const DiaryPanel: React.FC<DiaryPanelProps> = ({
     </div>
   );
 };
+
+

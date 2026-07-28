@@ -27,7 +27,6 @@ app.use(express.json());
 // Mount Modular Routes
 app.use('/api/profile', userRoutes);
 app.use('/api/memories', memoryRoutes);
-app.use('/api/pins', memoryRoutes); // Backwards-compatibility alias for frontend transition
 app.use('/api/circles', circleRoutes);
 app.use('/api/songs', musicRoutes); // Kept on /api/songs for Deezer player backwards-compatibility
 app.use('/api/media', mediaRoutes);

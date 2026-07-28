@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Upload } from 'lucide-react';
-import { Circle, Pin } from '../types';
+import { Circle, Memory } from '@/shared/types/types';
 
-interface EditPinModalProps {
+interface EditMemoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  pin: Pin | null;
+  memory: Memory | null;
   joinedCircles: Circle[];
   existingPeople: string[];
   onSubmit: (id: string, data: {
@@ -13,8 +13,8 @@ interface EditPinModalProps {
     privacy_mode: 'public' | 'circle' | 'private';
     circle_id: string | null;
     memory_date: string;
-    spotify_track_id: string | null;
-    people: string | null;
+    music_track_id: string | null;
+    tagged_people: string | null;
     image: File | null;
   }) => Promise<void>;
 }
@@ -69,10 +69,10 @@ const compressImage = (file: File): Promise<File> => {
   });
 };
 
-export const EditPinModal: React.FC<EditPinModalProps> = ({
+export const EditMemoryModal: React.FC<EditMemoryModalProps> = ({
   isOpen,
   onClose,
-  pin,
+  memory,
   joinedCircles,
   existingPeople,
   onSubmit
@@ -118,24 +118,24 @@ export const EditPinModal: React.FC<EditPinModalProps> = ({
     setPeopleList(peopleList.filter(p => p !== nameToRemove));
   };
 
-  // Initialize fields when pin changes
+  // Initialize fields when memory changes
   useEffect(() => {
-    if (pin) {
-      setContent(pin.content);
-      setPrivacyMode(pin.privacy_mode);
-      setCircleId(pin.circle_id);
-      setMemoryDate(pin.memory_date);
+    if (memory) {
+      setContent(memory.content);
+      setPrivacyMode(memory.privacy_mode);
+      setCircleId(memory.circle_id);
+      setMemoryDate(memory.memory_date);
       setSongQuery('');
       setSearchResults([]);
       setSelectedSong(null);
-      setPeopleList(pin.people ? JSON.parse(pin.people) : []);
+      setPeopleList(memory.tagged_people ? JSON.parse(memory.tagged_people) : []);
       setPersonInput('');
       setImage(null);
-      setImagePreview(pin.image_url || null);
+      setImagePreview(memory.media?.[0]?.url || null);
 
-      // If pin has a song, fetch its details
-      if (pin.spotify_track_id) {
-        fetch(`/api/songs/${pin.spotify_track_id}`)
+      // If memory has a song, fetch its details
+      if (memory.music_track_id) {
+        fetch(`/api/songs/${memory.music_track_id}`)
           .then(res => res.json())
           .then(track => {
             if (track && !track.error) {
@@ -145,9 +145,9 @@ export const EditPinModal: React.FC<EditPinModalProps> = ({
           .catch(err => console.error("Error loading song details:", err));
       }
     }
-  }, [pin, isOpen]);
+  }, [memory, isOpen]);
 
-  if (!isOpen || !pin) return null;
+  if (!isOpen || !memory) return null;
 
   const handleSearchSongs = async () => {
     if (!songQuery.trim()) return;
@@ -183,13 +183,13 @@ export const EditPinModal: React.FC<EditPinModalProps> = ({
       if (image) {
         finalImage = await compressImage(image);
       }
-      await onSubmit(pin.id, {
+      await onSubmit(memory.id, {
         content,
         privacy_mode: privacyMode,
         circle_id: privacyMode === 'circle' ? circleId : null,
         memory_date: memoryDate,
-        spotify_track_id: selectedSong ? selectedSong.id : null,
-        people: peopleList.length > 0 ? JSON.stringify(peopleList) : null,
+        music_track_id: selectedSong ? selectedSong.id : null,
+        tagged_people: peopleList.length > 0 ? JSON.stringify(peopleList) : null,
         image: finalImage
       });
       onClose();
@@ -567,3 +567,5 @@ export const EditPinModal: React.FC<EditPinModalProps> = ({
     </div>
   );
 };
+
+

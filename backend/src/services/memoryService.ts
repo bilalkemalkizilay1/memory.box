@@ -32,7 +32,7 @@ export const memoryService = {
       music_provider: string | null;
       music_track_id: string | null;
       tagged_people: string[];
-      image_url: string | null;
+      media?: { url: string; type: string }[];
     }
   ): Promise<any> => {
     const memoryId = uuidv4();
@@ -53,9 +53,11 @@ export const memoryService = {
       taggedPeopleJson
     );
 
-    if (data.image_url) {
-      const mediaId = uuidv4();
-      await memoryRepository.addMedia(mediaId, memoryId, data.image_url, 'image', 0);
+    if (data.media && data.media.length > 0) {
+      for (let i = 0; i < data.media.length; i++) {
+        const mediaId = uuidv4();
+        await memoryRepository.addMedia(mediaId, memoryId, data.media[i].url, data.media[i].type, i);
+      }
     }
 
     return memoryRepository.findByIdFull(memoryId, userId);
@@ -76,7 +78,7 @@ export const memoryService = {
       music_provider: string | null;
       music_track_id: string | null;
       tagged_people: string[];
-      image_url?: string | null;
+      media?: { url: string; type: string }[];
     }
   ): Promise<Memory> => {
     const memory = await memoryRepository.findById(id);
@@ -106,11 +108,13 @@ export const memoryService = {
       taggedPeopleJson
     );
 
-    // If image_url is provided, update associated media items
-    if (data.image_url !== undefined) {
+    // If media is provided, replace existing media items
+    if (data.media !== undefined) {
       await memoryRepository.deleteMediaByMemoryId(id);
-      if (data.image_url) {
-        await memoryRepository.addMedia(uuidv4(), id, data.image_url, 'image', 0);
+      if (data.media.length > 0) {
+        for (let i = 0; i < data.media.length; i++) {
+          await memoryRepository.addMedia(uuidv4(), id, data.media[i].url, data.media[i].type, i);
+        }
       }
     }
 

@@ -14,7 +14,20 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@features/*": ["./src/features/*"],
+      "@desktop/*": ["./src/app/desktop/*"],
+      "@mobile/*": ["./src/app/mobile/*"],
+      "@services/*": ["./src/shared/services/*"],
+      "@hooks/*": ["./src/shared/hooks/*"],
+      "@utils/*": ["./src/shared/utils/*"],
+      "@types/*": ["./src/shared/types/*"],
+      "@api/*": ["./src/shared/api/*"]
+    }
   },
   "include": ["src"]
 }

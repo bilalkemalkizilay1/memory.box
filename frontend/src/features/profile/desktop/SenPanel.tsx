@@ -1,15 +1,15 @@
 import React from 'react';
 import { X, User, Heart, ShieldCheck, Share2, Award, PenTool, Calendar } from 'lucide-react';
-import { Pin } from '../types';
+import { Memory } from '@/shared/types/types';
 
 interface SenPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  publicAndCirclePins: Pin[];
-  privatePins: Pin[];
+  publicAndCirclePins: Memory[];
+  privatePins: Memory[];
   myCreatedPinIds: string[];
   userProfile: { name: string; email: string } | null;
-  onEditPin: (pin: Pin) => void;
+  onEditPin: (memory: Memory) => void;
 }
 
 export const SenPanel: React.FC<SenPanelProps> = ({
@@ -101,15 +101,15 @@ export const SenPanel: React.FC<SenPanelProps> = ({
                 Henüz eklediğiniz bir anı bulunmamaktadır. Haritada bir yere tıklayarak ilk anınızı bırakın!
               </div>
             ) : (
-              myMemories.map(pin => (
+              myMemories.map(memory => (
                 <div 
-                  key={pin.id} 
+                  key={memory.id} 
                   style={{ 
                     background: 'transparent', 
                     borderBottom: '1px dashed rgba(44, 44, 44, 0.15)',
                     borderLeft: `4px solid ${
-                      pin.privacy_mode === 'private' ? 'var(--color-private)' : 
-                      pin.privacy_mode === 'circle' ? 'var(--color-circle)' : 'var(--color-public)'
+                      memory.privacy_mode === 'private' ? 'var(--color-private)' : 
+                      memory.privacy_mode === 'circle' ? 'var(--color-circle)' : 'var(--color-public)'
                     }`,
                     padding: '0.75rem 0.5rem', 
                     display: 'flex',
@@ -124,26 +124,26 @@ export const SenPanel: React.FC<SenPanelProps> = ({
                       padding: '0.15rem 0.4rem', 
                       borderRadius: '6px',
                       background: 
-                        pin.privacy_mode === 'private' ? 'rgba(90, 103, 216, 0.1)' : 
-                        pin.privacy_mode === 'circle' ? 'rgba(221, 107, 32, 0.1)' : 'rgba(229, 62, 109, 0.1)',
+                        memory.privacy_mode === 'private' ? 'rgba(90, 103, 216, 0.1)' : 
+                        memory.privacy_mode === 'circle' ? 'rgba(221, 107, 32, 0.1)' : 'rgba(229, 62, 109, 0.1)',
                       color: 
-                        pin.privacy_mode === 'private' ? 'var(--color-private)' : 
-                        pin.privacy_mode === 'circle' ? 'var(--color-circle)' : 'var(--color-public)'
+                        memory.privacy_mode === 'private' ? 'var(--color-private)' : 
+                        memory.privacy_mode === 'circle' ? 'var(--color-circle)' : 'var(--color-public)'
                     }}>
-                      {pin.privacy_mode === 'private' && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><ShieldCheck size={11} /> Günlük</span>}
-                      {pin.privacy_mode === 'circle' && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Share2 size={11} /> Çember</span>}
-                      {pin.privacy_mode === 'public' && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Heart size={11} fill="var(--color-public)" stroke="none" /> Açık</span>}
+                      {memory.privacy_mode === 'private' && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><ShieldCheck size={11} /> Günlük</span>}
+                      {memory.privacy_mode === 'circle' && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Share2 size={11} /> Çember</span>}
+                      {memory.privacy_mode === 'public' && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Heart size={11} fill="var(--color-public)" stroke="none" /> Açık</span>}
                     </span>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-                      <Calendar size={11} /> {new Date(pin.memory_date).toLocaleDateString('tr-TR')}
+                      <Calendar size={11} /> {new Date(memory.memory_date).toLocaleDateString('tr-TR')}
                     </span>
                   </div>
                   <div style={{ fontFamily: 'var(--font-body)', fontSize: '1.25rem', color: 'var(--text-main)', lineHeight: '1.3', wordBreak: 'break-word' }}>
-                    {pin.content}
+                    {memory.content}
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
                     <button 
-                      onClick={() => onEditPin(pin)}
+                      onClick={() => onEditPin(memory)}
                       style={{ 
                         background: 'none', 
                         border: '1px solid var(--text-active)', 
@@ -176,3 +176,5 @@ export const SenPanel: React.FC<SenPanelProps> = ({
     </div>
   );
 };
+
+

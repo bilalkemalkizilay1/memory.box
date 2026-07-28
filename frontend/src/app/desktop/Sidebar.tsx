@@ -5,7 +5,8 @@ interface SidebarProps {
   activePanel: 'cemberler' | 'gunluk' | 'sen' | 'hakkinda' | null;
   setActivePanel: (panel: 'cemberler' | 'gunluk' | 'sen' | 'hakkinda' | null) => void;
   isPinningMode: boolean;
-  setIsPinningMode: (val: boolean) => void;
+  onStartPinning: () => void;
+  onCancelPinning: () => void;
   onGeneralMapClick: () => void;
 }
 
@@ -13,7 +14,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activePanel,
   setActivePanel,
   isPinningMode,
-  setIsPinningMode,
+  onStartPinning,
+  onCancelPinning,
   onGeneralMapClick
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -51,7 +53,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className={`menu-item ${isPinningMode ? 'active' : ''}`}
             onClick={() => {
               setActivePanel(null);
-              setIsPinningMode(!isPinningMode);
+              if (isPinningMode) onCancelPinning();
+              else onStartPinning();
             }}
             title={isCollapsed ? 'Yeni Anı' : ''}
             style={{ justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '0.85rem' : '0.85rem 1.15rem' }}
@@ -63,7 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <li 
             className={`menu-item ${!isPinningMode && activePanel === null ? 'active' : ''}`}
             onClick={() => {
-              setIsPinningMode(false);
+              onCancelPinning();
               onGeneralMapClick();
             }}
             title={isCollapsed ? 'Genel Harita' : ''}
@@ -76,7 +79,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <li 
             className={`menu-item ${activePanel === 'cemberler' ? 'active' : ''}`}
             onClick={() => {
-              setIsPinningMode(false);
+              onCancelPinning();
               setActivePanel(activePanel === 'cemberler' ? null : 'cemberler');
             }}
             title={isCollapsed ? 'Çemberler' : ''}
@@ -89,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <li 
             className={`menu-item ${activePanel === 'gunluk' ? 'active' : ''}`}
             onClick={() => {
-              setIsPinningMode(false);
+              onCancelPinning();
               setActivePanel(activePanel === 'gunluk' ? null : 'gunluk');
             }}
             title={isCollapsed ? 'Günlük' : ''}
@@ -102,7 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <li 
             className={`menu-item ${activePanel === 'sen' ? 'active' : ''}`}
             onClick={() => {
-              setIsPinningMode(false);
+              onCancelPinning();
               setActivePanel(activePanel === 'sen' ? null : 'sen');
             }}
             title={isCollapsed ? 'Sen' : ''}
@@ -115,7 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <li 
             className={`menu-item ${activePanel === 'hakkinda' ? 'active' : ''}`}
             onClick={() => {
-              setIsPinningMode(false);
+              onCancelPinning();
               setActivePanel(activePanel === 'hakkinda' ? null : 'hakkinda');
             }}
             title={isCollapsed ? 'Hakkında' : ''}
@@ -136,3 +139,5 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </div>
   );
 };
+
+

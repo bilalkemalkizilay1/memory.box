@@ -51,7 +51,7 @@ export const memoryRepository = {
              (SELECT COUNT(*) FROM memory_reactions mr WHERE mr.memory_id = m.id AND mr.reaction_type = 'hug') as hugs_count,
              COALESCE(
                (SELECT json_agg(json_build_object('id', med.id, 'url', med.url, 'type', med.type, 'display_order', med.display_order) ORDER BY med.display_order)
-                FROM media med WHERE med.memory_id = m.id), '[]'::json
+                FROM memory_media med WHERE med.memory_id = m.id), '[]'::json
              ) as media
       FROM memories m
       LEFT JOIN users u ON m.user_id = u.id
@@ -117,26 +117,26 @@ export const memoryRepository = {
   ): Promise<Media> => {
     const db = await getDb();
     await db.run(
-      'INSERT INTO media (id, memory_id, url, type, display_order) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO memory_media (id, memory_id, url, type, display_order) VALUES (?, ?, ?, ?, ?)',
       id,
       memoryId,
       url,
       type,
       displayOrder
     );
-    const mediaItem = await db.get<Media>('SELECT * FROM media WHERE id = ?', id);
+    const mediaItem = await db.get<Media>('SELECT * FROM memory_media WHERE id = ?', id);
     if (!mediaItem) throw new Error('Failed to add media');
     return mediaItem;
   },
 
   findMediaByMemoryId: async (memoryId: string): Promise<Media[]> => {
     const db = await getDb();
-    return db.all('SELECT * FROM media WHERE memory_id = ? ORDER BY display_order ASC', memoryId);
+    return db.all('SELECT * FROM memory_media WHERE memory_id = ? ORDER BY display_order ASC', memoryId);
   },
 
   deleteMediaByMemoryId: async (memoryId: string): Promise<void> => {
     const db = await getDb();
-    await db.run('DELETE FROM media WHERE memory_id = ?', memoryId);
+    await db.run('DELETE FROM memory_media WHERE memory_id = ?', memoryId);
   },
 
   findByIdFull: async (id: string, userId: string): Promise<any> => {
@@ -147,7 +147,7 @@ export const memoryRepository = {
              (SELECT COUNT(*) FROM memory_reactions mr WHERE mr.memory_id = m.id AND mr.reaction_type = 'hug') as hugs_count,
              COALESCE(
                (SELECT json_agg(json_build_object('id', med.id, 'url', med.url, 'type', med.type, 'display_order', med.display_order) ORDER BY med.display_order)
-                FROM media med WHERE med.memory_id = m.id), '[]'::json
+                FROM memory_media med WHERE med.memory_id = m.id), '[]'::json
              ) as media
       FROM memories m
       LEFT JOIN users u ON m.user_id = u.id

@@ -1,8 +1,8 @@
-import { Pin, Circle } from '../types';
+import { Memory, Circle } from '@/shared/types/types';
+import { ImageUtils } from '@/shared/utils/ImageUtils';
 
 const API_BASE = '/api';
 
-// Generate or retrieve device-specific author signature
 export function getAuthorToken(): string {
   let token = localStorage.getItem('mb_author_token');
   if (!token) {
@@ -12,8 +12,7 @@ export function getAuthorToken(): string {
   return token;
 }
 
-// Map PostgreSQL backend memory format to the Pin format expected by frontend UI
-function mapMemoryToPin(m: any): Pin {
+function formatMemoryResponse(m: any): Memory {
   return {
     id: m.id,
     lat: Number(m.lat),
@@ -24,63 +23,60 @@ function mapMemoryToPin(m: any): Pin {
     memory_date: m.memory_date,
     likes_count: Number(m.likes_count || 0),
     hugs_count: Number(m.hugs_count || 0),
-    spotify_track_id: m.music_track_id || null,
-    image_url: m.media && m.media[0] ? m.media[0].url : null,
-    people: m.tagged_people 
+    music_provider: m.music_provider || null,
+    music_track_id: m.music_track_id || null,
+    media: m.media || [],
+    tagged_people: m.tagged_people 
       ? (typeof m.tagged_people === 'string' ? m.tagged_people : JSON.stringify(m.tagged_people))
-      : '[]',
-    created_at: m.created_at || new Date().toISOString()
+      : null,
+    created_at: m.created_at || new Date().toISOString(),
+    author_name: m.author_name
   };
 }
 
-export async function fetchPins(circleIds: string[]): Promise<Pin[]> {
+export async function fetchMemories(circleIds: string[]): Promise<Memory[]> {
   const params = new URLSearchParams();
   if (circleIds.length > 0) {
     params.append('circle_ids', circleIds.join(','));
   }
-  const res = await fetch(`${API_BASE}/pins?${params.toString()}`, {
-    headers: {
-      'X-Author-Token': getAuthorToken()
-    }
+  const res = await fetch(`${API_BASE}/memories?${params.toString()}`, {
+    headers: { 'X-Author-Token': getAuthorToken() }
   });
-  if (!res.ok) throw new Error('Failed to fetch pins');
+  if (!res.ok) throw new Error('Failed to fetch memories');
   const memories = await res.json();
-  return memories.map(mapMemoryToPin);
+  return memories.map(formatMemoryResponse);
 }
 
-export async function createPin(data: {
+export async function createMemory(data: {
   lat: number;
   lng: number;
   content: string;
   privacy_mode: 'public' | 'circle' | 'private';
   circle_id: string | null;
   memory_date: string;
-  spotify_track_id: string | null;
-  people: string | null;
-  image: File | null;
-}): Promise<Pin> {
-  let imageUrl: string | null = null;
+  music_track_id: string | null;
+  tagged_people: string | null;
+  images: File[];
+}): Promise<Memory> {
+  const mediaUrls: { url: string, type: string }[] = [];
 
-  // 1. Upload image to the media upload endpoint if present
-  if (data.image) {
+  for (const image of data.images) {
+    const compressedImage = await ImageUtils.compressImage(image);
     const uploadFormData = new FormData();
-    uploadFormData.append('file', data.image);
+    uploadFormData.append('file', compressedImage);
 
     const uploadRes = await fetch(`${API_BASE}/media/upload`, {
       method: 'POST',
-      headers: {
-        'X-Author-Token': getAuthorToken()
-      },
+      headers: { 'X-Author-Token': getAuthorToken() },
       body: uploadFormData
     });
 
     if (!uploadRes.ok) throw new Error('Failed to upload memory image');
     const uploadData = await uploadRes.json();
-    imageUrl = uploadData.url;
+    mediaUrls.push({ url: uploadData.url, type: 'image' });
   }
 
-  // 2. Submit memory JSON data
-  const res = await fetch(`${API_BASE}/pins`, {
+  const res = await fetch(`${API_BASE}/memories`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -93,49 +89,47 @@ export async function createPin(data: {
       privacy_mode: data.privacy_mode,
       circle_id: data.circle_id,
       memory_date: data.memory_date,
-      music_provider: data.spotify_track_id ? 'deezer' : null,
-      music_track_id: data.spotify_track_id,
-      tagged_people: data.people ? JSON.parse(data.people) : [],
-      image_url: imageUrl
+      music_provider: data.music_track_id ? 'deezer' : null,
+      music_track_id: data.music_track_id,
+      tagged_people: data.tagged_people ? JSON.parse(data.tagged_people) : [],
+      media: mediaUrls
     })
   });
 
   if (!res.ok) throw new Error('Failed to create memory');
   const memory = await res.json();
-  return mapMemoryToPin(memory);
+  return formatMemoryResponse(memory);
 }
 
-export async function updatePin(id: string, data: {
+export async function updateMemory(id: string, data: {
   content: string;
   privacy_mode: 'public' | 'circle' | 'private';
   circle_id: string | null;
   memory_date: string;
-  spotify_track_id: string | null;
-  people?: string | null;
-  image?: File | null;
-}): Promise<Pin> {
-  let imageUrl: string | null | undefined = undefined;
+  music_track_id: string | null;
+  tagged_people?: string | null;
+  images?: File[];
+}): Promise<Memory> {
+  const mediaUrls: { url: string, type: string }[] = [];
 
-  // 1. Upload new image if present
-  if (data.image) {
-    const uploadFormData = new FormData();
-    uploadFormData.append('file', data.image);
+  if (data.images && data.images.length > 0) {
+    for (const image of data.images) {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', image);
 
-    const uploadRes = await fetch(`${API_BASE}/media/upload`, {
-      method: 'POST',
-      headers: {
-        'X-Author-Token': getAuthorToken()
-      },
-      body: uploadFormData
-    });
+      const uploadRes = await fetch(`${API_BASE}/media/upload`, {
+        method: 'POST',
+        headers: { 'X-Author-Token': getAuthorToken() },
+        body: uploadFormData
+      });
 
-    if (!uploadRes.ok) throw new Error('Failed to upload memory image');
-    const uploadData = await uploadRes.json();
-    imageUrl = uploadData.url;
+      if (!uploadRes.ok) throw new Error('Failed to upload memory image');
+      const uploadData = await uploadRes.json();
+      mediaUrls.push({ url: uploadData.url, type: 'image' });
+    }
   }
 
-  // 2. Submit memory update JSON data
-  const res = await fetch(`${API_BASE}/pins/${id}`, {
+  const res = await fetch(`${API_BASE}/memories/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -146,31 +140,29 @@ export async function updatePin(id: string, data: {
       privacy_mode: data.privacy_mode,
       circle_id: data.circle_id,
       memory_date: data.memory_date,
-      music_provider: data.spotify_track_id ? 'deezer' : null,
-      music_track_id: data.spotify_track_id,
-      tagged_people: data.people ? JSON.parse(data.people) : [],
-      ...(imageUrl !== undefined && { image_url: imageUrl })
+      music_provider: data.music_track_id ? 'deezer' : null,
+      music_track_id: data.music_track_id,
+      tagged_people: data.tagged_people ? JSON.parse(data.tagged_people) : [],
+      ...(data.images && data.images.length > 0 && { media: mediaUrls })
     })
   });
 
-  if (!res.ok) throw new Error('Failed to update pin');
+  if (!res.ok) throw new Error('Failed to update memory');
   const memory = await res.json();
-  return mapMemoryToPin(memory);
+  return formatMemoryResponse(memory);
 }
 
-export async function deletePin(id: string): Promise<{ success: boolean }> {
-  const res = await fetch(`${API_BASE}/pins/${id}`, {
+export async function deleteMemory(id: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${API_BASE}/memories/${id}`, {
     method: 'DELETE',
-    headers: {
-      'X-Author-Token': getAuthorToken()
-    }
+    headers: { 'X-Author-Token': getAuthorToken() }
   });
-  if (!res.ok) throw new Error('Failed to delete pin');
+  if (!res.ok) throw new Error('Failed to delete memory');
   return res.json();
 }
 
-export async function likePin(id: string): Promise<{ likes_count: number }> {
-  const res = await fetch(`${API_BASE}/pins/${id}/reactions`, {
+export async function likeMemory(id: string): Promise<{ likes_count: number }> {
+  const res = await fetch(`${API_BASE}/memories/${id}/reactions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -178,13 +170,13 @@ export async function likePin(id: string): Promise<{ likes_count: number }> {
     },
     body: JSON.stringify({ type: 'like' })
   });
-  if (!res.ok) throw new Error('Failed to like pin');
+  if (!res.ok) throw new Error('Failed to like memory');
   const data = await res.json();
   return { likes_count: data.reactionCounts.likes };
 }
 
-export async function hugPin(id: string): Promise<{ hugs_count: number }> {
-  const res = await fetch(`${API_BASE}/pins/${id}/reactions`, {
+export async function hugMemory(id: string): Promise<{ hugs_count: number }> {
+  const res = await fetch(`${API_BASE}/memories/${id}/reactions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -192,16 +184,14 @@ export async function hugPin(id: string): Promise<{ hugs_count: number }> {
     },
     body: JSON.stringify({ type: 'hug' })
   });
-  if (!res.ok) throw new Error('Failed to hug pin');
+  if (!res.ok) throw new Error('Failed to hug memory');
   const data = await res.json();
   return { hugs_count: data.reactionCounts.hugs };
 }
 
 export async function fetchCircle(id: string): Promise<Circle> {
   const res = await fetch(`${API_BASE}/circles/${id}`, {
-    headers: {
-      'X-Author-Token': getAuthorToken()
-    }
+    headers: { 'X-Author-Token': getAuthorToken() }
   });
   if (!res.ok) throw new Error('Circle not found');
   return res.json();
