@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, UserPlus, Copy, Check, Users } from 'lucide-react';
+import { Copy, Check, Users, Circle as CircleIcon } from 'lucide-react';
 import { Circle } from '@/shared/types/types';
 import { createCircle, fetchCircle } from '@/shared/api/api';
 
@@ -35,7 +35,7 @@ export const CirclesPanel: React.FC<CirclesPanelProps> = ({
       const newCircle = await createCircle(newCircleName);
       setJoinedCircles(prev => [...prev, newCircle]);
       setNewCircleName('');
-      setSuccess(`"${newCircle.name}" oluşturuldu! Kod: ${newCircle.id}`);
+      setSuccess(`"${newCircle.name}" oluşturuldu!`);
       setSelectedCircleId(newCircle.id);
     } catch (err) {
       setError('Çember oluşturulamadı. Lütfen tekrar deneyin.');
@@ -65,7 +65,8 @@ export const CirclesPanel: React.FC<CirclesPanelProps> = ({
     }
   };
 
-  const copyToClipboard = (code: string) => {
+  const copyToClipboard = (e: React.MouseEvent, code: string) => {
+    e.stopPropagation(); // Prevent row click
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 2000);
@@ -75,91 +76,104 @@ export const CirclesPanel: React.FC<CirclesPanelProps> = ({
     <div className={`mobile-page ${isOpen ? 'open' : ''}`}>
       <h1 className="mobile-large-title">Çemberler</h1>
 
-      <div className="mobile-page-content" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mobile-spacing-lg)' }}>
-        <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+      <div className="mobile-page-content">
+        <p className="mobile-body" style={{ marginBottom: 'var(--mobile-spacing-lg)' }}>
           Sevgiliniz, aileniz veya en yakın arkadaş grubunuzla paylaştığınız konum bazlı anı kutuları oluşturun ya da davet koduyla katılın.
         </p>
 
-        {error && <div style={{ color: 'var(--color-public)', fontSize: '0.8rem', background: 'rgba(229, 62, 62, 0.05)', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid rgba(229, 62, 62, 0.2)' }}>⚠️ {error}</div>}
-        {success && <div style={{ color: 'green', fontSize: '0.8rem', background: 'rgba(0, 128, 0, 0.05)', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid rgba(0, 128, 0, 0.2)' }}>✓ {success}</div>}
+        {error && (
+          <div className="mobile-caption" style={{ color: 'var(--mobile-accent)', background: 'rgba(194, 75, 59, 0.1)', padding: 'var(--mobile-spacing-sm) var(--mobile-spacing-md)', borderRadius: 'var(--mobile-radius-sm)', marginBottom: 'var(--mobile-spacing-md)' }}>
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="mobile-caption" style={{ color: '#34C759', background: 'rgba(52, 199, 89, 0.1)', padding: 'var(--mobile-spacing-sm) var(--mobile-spacing-md)', borderRadius: 'var(--mobile-radius-sm)', marginBottom: 'var(--mobile-spacing-md)' }}>
+            {success}
+          </div>
+        )}
 
-        {/* Join Circle */}
-        <form onSubmit={handleJoinCircle} style={{ display: 'flex', gap: '0.5rem' }}>
-          <input 
-            type="text" 
-            className="form-input" 
-            placeholder="6 Haneli Çember Kodu" 
-            value={joinCode}
-            onChange={(e) => setJoinCode(e.target.value)}
-            maxLength={6}
-            style={{ textTransform: 'uppercase' }}
-          />
-          <button type="submit" className="btn-primary" style={{ flex: '0 0 auto', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <UserPlus size={16} />
-            Katıl
-          </button>
-        </form>
+        <div style={{ marginBottom: 'var(--mobile-spacing-xl)' }}>
+          <form onSubmit={handleJoinCircle} style={{ display: 'flex', gap: 'var(--mobile-spacing-sm)', marginBottom: 'var(--mobile-spacing-md)' }}>
+            <input 
+              type="text" 
+              className="mobile-input" 
+              placeholder="6 Haneli Çember Kodu" 
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value)}
+              maxLength={6}
+              style={{ textTransform: 'uppercase', flex: 1 }}
+            />
+            <button type="submit" className="mobile-button mobile-button-primary" style={{ width: 'auto' }}>
+              Katıl
+            </button>
+          </form>
 
-        {/* Create Circle */}
-        <form onSubmit={handleCreateCircle} style={{ display: 'flex', gap: '0.5rem' }}>
-          <input 
-            type="text" 
-            className="form-input" 
-            placeholder="Yeni Çember Adı" 
-            value={newCircleName}
-            onChange={(e) => setNewCircleName(e.target.value)}
-          />
-          <button type="submit" className="btn-primary" style={{ flex: '0 0 auto', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <Plus size={16} />
-            Oluştur
-          </button>
-        </form>
-
-        <div className="divider">Çemberleriniz</div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-          {joinedCircles.map(circle => {
-            const isSelected = selectedCircleId === circle.id;
-            return (
-              <div 
-                key={circle.id} 
-                className={`circle-card ${isSelected ? 'active' : ''}`}
-                style={{ 
-                  borderLeft: isSelected ? '4px solid var(--color-circle)' : '1px solid var(--border-color)',
-                  background: isSelected ? 'rgba(221, 107, 32, 0.03)' : 'transparent'
-                }}
-                onClick={() => setSelectedCircleId(isSelected ? null : circle.id)}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div className="circle-card-title">{circle.name}</div>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      copyToClipboard(circle.id);
-                    }}
-                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.72rem' }}
-                  >
-                    {copiedCode === circle.id ? <Check size={12} color="green" /> : <Copy size={12} />}
-                    <span>{copiedCode === circle.id ? 'Kopyalandı' : circle.id}</span>
-                  </button>
-                </div>
-                <div className="circle-card-desc" style={{ marginTop: '0.25rem' }}>
-                  Kod: <span style={{ fontWeight: 'bold', fontFamily: 'monospace' }}>{circle.id}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className="circle-card-count" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <Users size={12} />
-                    <span>Çember aktif</span>
-                  </span>
-                  {isSelected && <span style={{ fontSize: '0.72rem', color: 'var(--color-circle)', fontWeight: 600 }}>Filtrelenmiş</span>}
-                </div>
-              </div>
-            );
-          })}
+          <form onSubmit={handleCreateCircle} style={{ display: 'flex', gap: 'var(--mobile-spacing-sm)' }}>
+            <input 
+              type="text" 
+              className="mobile-input" 
+              placeholder="Yeni Çember Adı" 
+              value={newCircleName}
+              onChange={(e) => setNewCircleName(e.target.value)}
+              style={{ flex: 1 }}
+            />
+            <button type="submit" className="mobile-button mobile-button-secondary" style={{ width: 'auto' }}>
+              Oluştur
+            </button>
+          </form>
         </div>
+
+        <h2 className="mobile-title">Çemberleriniz</h2>
+
+        {joinedCircles.length === 0 ? (
+          <div style={{ padding: 'var(--mobile-spacing-xl) 0', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--mobile-spacing-md)' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--mobile-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--mobile-text-tertiary)' }}>
+              <Users size={32} />
+            </div>
+            <p className="mobile-body">
+              Henüz bir çembere katılmadınız. Kendi anı kutunuzu oluşturarak veya bir davet koduyla katılarak başlayın.
+            </p>
+          </div>
+        ) : (
+          <div className="mobile-list">
+            {joinedCircles.map(circle => {
+              const isSelected = selectedCircleId === circle.id;
+              return (
+                <div 
+                  key={circle.id} 
+                  className="mobile-list-item"
+                  onClick={() => setSelectedCircleId(isSelected ? null : circle.id)}
+                >
+                  <div className="mobile-list-icon" style={{ background: isSelected ? 'var(--mobile-accent)' : 'var(--mobile-bg)', borderRadius: 'var(--mobile-radius-sm)', color: isSelected ? '#FFF' : 'var(--mobile-text-secondary)' }}>
+                    <CircleIcon size={16} fill={isSelected ? 'currentColor' : 'none'} />
+                  </div>
+                  
+                  <div className="mobile-list-content">
+                    <div className="mobile-list-title">{circle.name}</div>
+                    <div className="mobile-list-subtitle" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      Kod: <span style={{ fontFamily: 'monospace', fontWeight: 500 }}>{circle.id}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--mobile-spacing-md)' }}>
+                    <button 
+                      onClick={(e) => copyToClipboard(e, circle.id)}
+                      style={{ background: 'none', border: 'none', padding: '8px', color: 'var(--mobile-text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      aria-label="Kodu Kopyala"
+                    >
+                      {copiedCode === circle.id ? <Check size={18} color="#34C759" /> : <Copy size={18} />}
+                    </button>
+                    {isSelected && <Check size={20} color="var(--mobile-accent)" />}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
 };
+
 
 
