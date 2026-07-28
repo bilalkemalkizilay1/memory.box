@@ -1,7 +1,5 @@
 import { useState, useRef } from 'react';
 import { BottomNav } from './BottomNav';
-import { useState, useRef } from 'react';
-import { BottomNav } from './BottomNav';
 import { MobileMapExperience as MapComponent } from '@/features/map/mobile/MobileMapExperience';
 import { DiaryPanel } from '@/features/memories/mobile/DiaryPanel';
 import { CirclesPanel } from '@/features/circles/mobile/CirclesPanel';
