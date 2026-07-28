@@ -20,6 +20,9 @@ import { useMemoryCreation } from '@hooks/useMemoryCreation';
 
 export default function DesktopApp() {
   const [activePanel, setActivePanel] = useState<'cemberler' | 'gunluk' | 'sen' | 'hakkinda' | null>(null);
+  const handleDirectAddClick = () => {
+    document.getElementById('mobile-gallery')?.click();
+  };
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingPin, setEditingPin] = useState<Memory | null>(null);
 
@@ -251,8 +254,7 @@ export default function DesktopApp() {
       <div className="desktop-only-fab">
         {!showMediaSelector ? (
           <button 
-            className="fab-main" 
-            onClick={() => setShowMediaSelector(true)}
+            className="fab-main" onClick={handleDirectAddClick}
             title="Yeni Anı Ekle (Fotoğraf veya Yazı)"
           >
             <Plus size={28} />
@@ -270,7 +272,7 @@ export default function DesktopApp() {
             
             <label className="fab-option-btn" title="Fotoğraflı Anı (Konumu otomatik bulur)">
               <Camera size={20} /> Fotoğraf
-              <input type="file" id="media-upload-desktop" accept="image/*" style={{ display: 'none' }} onChange={onMediaFileChange} />
+              <input type="file" id="mobile-gallery" accept="image/*" multiple className="hidden-file-input" onChange={onMediaFileChange} />
             </label>
 
             <button 

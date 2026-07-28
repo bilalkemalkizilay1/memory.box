@@ -1493,3 +1493,12 @@ body {
   100% { transform: scale(1); opacity: 1; }
 }
 
+.hidden-file-input {
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  z-index: -1;
+}
+

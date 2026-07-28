@@ -9,7 +9,6 @@ import { HakkindaPanel } from '@/features/profile/mobile/HakkindaPanel';
 import { CreateMemoryFlow } from '@/features/memories/mobile/CreateMemoryFlow';
 import { HeroPreview } from '@/features/memories/mobile/HeroPreview';
 import { EditMemoryModal } from '@/features/memories/mobile/EditMemoryModal';
-import { MediaSourceBottomSheet } from '@/features/memories/mobile/MediaSourceBottomSheet';
 import { Search, User } from 'lucide-react';
 import { Memory } from '@/shared/types/types';
 
@@ -26,7 +25,9 @@ export default function MobileApp() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingPin, setEditingPin] = useState<Memory | null>(null);
   
-  const [showMediaSource, setShowMediaSource] = useState(false);
+  const handleDirectAddClick = () => {
+    document.getElementById('mobile-gallery')?.click();
+  };
 
   const mapRef = useRef<any>(null);
 
@@ -52,7 +53,6 @@ export default function MobileApp() {
     handleMediaFileSelected,
     confirmPinLocation,
     cancelPinning,
-    startManualPinning,
     closePinModal,
     triggerPinSubmit,
     extractionStatus
@@ -219,22 +219,11 @@ export default function MobileApp() {
 
       <BottomNav 
         activeTab={activeTab} 
-        setActiveTab={setActiveTab as any} 
-        onAddClick={() => setShowMediaSource(true)}
+        setActiveTab={setActiveTab} 
+        onAddClick={handleDirectAddClick}
       />
 
-      <MediaSourceBottomSheet 
-        isOpen={showMediaSource}
-        onClose={() => setShowMediaSource(false)}
-        onSelectCamera={() => document.getElementById('mobile-camera')?.click()}
-        onSelectGallery={() => document.getElementById('mobile-gallery')?.click()}
-        onSelectTextOnly={() => {
-          startManualPinning();
-        }}
-      />
-
-      <input type="file" id="mobile-camera" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={onMediaFileChange} />
-      <input type="file" id="mobile-gallery" accept="image/*" multiple style={{ display: 'none' }} onChange={onMediaFileChange} />
+      <input type="file" id="mobile-gallery" accept="image/*" multiple className="hidden-file-input" onChange={onMediaFileChange} />
     </div>
   );
 }
