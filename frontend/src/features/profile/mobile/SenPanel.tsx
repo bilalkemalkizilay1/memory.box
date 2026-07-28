@@ -35,7 +35,7 @@ export const SenPanel: React.FC<SenPanelProps> = ({
   ].sort((a, b) => new Date(b.memory_date).getTime() - new Date(a.memory_date).getTime());
 
   return (
-    <div className={`panel-drawer ${isOpen ? 'open' : ''}`}>
+    <div className={`mobile-screen ${isOpen ? 'open' : ''}`}>
       <div className="panel-header">
         <h2 className="panel-title">Sen (Profil)</h2>
         <button className="panel-close-btn" onClick={onClose}>

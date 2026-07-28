@@ -8,7 +8,7 @@ interface HakkindaPanelProps {
 
 export const HakkindaPanel: React.FC<HakkindaPanelProps> = ({ isOpen, onClose }) => {
   return (
-    <div className={`panel-drawer ${isOpen ? 'open' : ''}`}>
+    <div className={`mobile-screen ${isOpen ? 'open' : ''}`}>
       <div className="panel-header">
         <h2 className="panel-title">Hakkında</h2>
         <button className="panel-close-btn" onClick={onClose}>

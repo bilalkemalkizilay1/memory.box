@@ -18,9 +18,21 @@ import { useCircles } from '@features/circles/shared/useCircles';
 import { useMemories } from '@features/memories/shared/useMemories';
 import { useMemoryCreation } from '@hooks/useMemoryCreation';
 
+export type MobileRoute = 'map' | 'circles' | 'memories' | 'profile' | 'hakkinda';
+
 export default function MobileApp() {
-  const [activeTab, setActiveTab] = useState<'map' | 'circles' | 'memories' | 'profile'>('map');
-  const [activePanel, setActivePanel] = useState<'sen' | 'hakkinda' | null>(null);
+  const [navStack, setNavStack] = useState<MobileRoute[]>(['map']);
+  const currentRoute = navStack[navStack.length - 1];
+
+  const navigateTo = (route: MobileRoute) => {
+    if (currentRoute !== route) {
+      setNavStack(['map', route]); // Reset stack to map -> new route for bottom nav
+    }
+  };
+
+  const goBack = () => {
+    setNavStack(prev => prev.length > 1 ? prev.slice(0, -1) : prev);
+  };
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingPin, setEditingPin] = useState<Memory | null>(null);
@@ -34,13 +46,13 @@ export default function MobileApp() {
   const { userProfile, setUserProfile } = useProfile();
   const { joinedCircles, setJoinedCircles, selectedCircleId, setSelectedCircleId } = useCircles();
   const {
-    privatePins, serverPins, myCreatedPinIds, likesAndHugs, searchQuery,
+    privatePins, myCreatedPinIds, likesAndHugs, searchQuery,
     setSearchQuery, tagged_peopleFilter, setPeopleFilter, allUniquePeople, visiblePins,
     handlePinSubmit, handlePinUpdate, handleLike, handleHug
   } = useMemories(joinedCircles, selectedCircleId);
 
   const handlePanToPin = (memory: Memory) => {
-    setActiveTab('map');
+    setNavStack(['map']); // Go straight back to map
     if (mapRef.current) {
       mapRef.current.setView([memory.lat, memory.lng], 16);
     }
@@ -69,20 +81,19 @@ export default function MobileApp() {
   return (
     <div className="app-container mobile-app">
       {/* Mobile Top Search Bar (Only on Map Tab) */}
-      {activeTab === 'map' && (
-        <div style={{
-          position: 'absolute',
-          top: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 1000,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.5rem',
-          width: '90%',
-          maxWidth: '480px',
-          pointerEvents: 'none'
-        }}>
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 1000,
+        display: currentRoute === 'map' ? 'flex' : 'none',
+        flexDirection: 'column',
+        gap: '0.5rem',
+        width: '90%',
+        maxWidth: '480px',
+        pointerEvents: 'none'
+      }}>
           <div className="search-bar-wrapper" style={{ position: 'relative', top: 0, left: 0, transform: 'none', width: '100%', pointerEvents: 'auto' }}>
             <Search className="search-icon" />
             <input 
@@ -126,31 +137,28 @@ export default function MobileApp() {
             </div>
           )}
         </div>
-      )}
 
-      {/* Main Map Background */}
-      <div className="map-container-wrapper" style={{ display: activeTab === 'map' ? 'block' : 'none' }}>
-        <MapComponent 
-          memories={visiblePins}
-          isPinningMode={isPinningMode}
-          onConfirmPinLocation={confirmPinLocation}
-          onCancelPinning={cancelPinning}
-          onLike={handleLike}
-          onHug={handleHug}
-          likesAndHugs={likesAndHugs}
-          mapRef={mapRef}
-          myCreatedPinIds={myCreatedPinIds}
-          onEditPin={(memory) => {
-            setEditingPin(memory);
-            setIsEditModalOpen(true);
-          }}
-        />
-      </div>
+      {/* Map is always rendered, visually hides behind mobile-screen overlays */}
+      <MapComponent 
+        memories={visiblePins}
+        isPinningMode={isPinningMode}
+        onConfirmPinLocation={confirmPinLocation}
+        onCancelPinning={cancelPinning}
+        onLike={handleLike}
+        onHug={handleHug}
+        likesAndHugs={likesAndHugs}
+        mapRef={mapRef}
+        myCreatedPinIds={myCreatedPinIds}
+        onEditPin={(memory) => {
+          setEditingPin(memory);
+          setIsEditModalOpen(true);
+        }}
+      />
 
-      {/* Panels (Controlled by activeTab or activePanel) */}
+      {/* Screens */}
       <CirclesPanel 
-        isOpen={activeTab === 'circles'}
-        onClose={() => setActiveTab('map')}
+        isOpen={currentRoute === 'circles'} 
+        onClose={goBack}
         joinedCircles={joinedCircles}
         setJoinedCircles={setJoinedCircles}
         selectedCircleId={selectedCircleId}
@@ -158,30 +166,33 @@ export default function MobileApp() {
       />
 
       <DiaryPanel 
-        isOpen={activeTab === 'memories'}
-        onClose={() => setActiveTab('map')}
+        isOpen={currentRoute === 'memories'} 
+        onClose={goBack}
         privatePins={privatePins}
-        onPinClick={handlePanToPin}
+        onPinClick={(memory) => {
+          setEditingPin(memory);
+          setIsEditModalOpen(true);
+        }}
         userProfile={userProfile}
         setUserProfile={setUserProfile}
       />
 
       <SenPanel 
-        isOpen={activeTab === 'profile' || activePanel === 'sen'}
-        onClose={() => { setActiveTab('map'); setActivePanel(null); }}
-        publicAndCirclePins={serverPins}
+        isOpen={currentRoute === 'profile'} 
+        onClose={goBack}
+        publicAndCirclePins={[]}
         privatePins={privatePins}
         myCreatedPinIds={myCreatedPinIds}
         userProfile={userProfile}
-        onEditPin={(memory) => {
+        onEditPin={(memory: Memory) => {
           setEditingPin(memory);
           setIsEditModalOpen(true);
         }}
       />
 
       <HakkindaPanel 
-        isOpen={activePanel === 'hakkinda'}
-        onClose={() => setActivePanel(null)}
+        isOpen={currentRoute === 'hakkinda'} 
+        onClose={goBack}
       />
 
       {/* Full Screen Modals */}
@@ -218,8 +229,8 @@ export default function MobileApp() {
       />
 
       <BottomNav 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
+        activeTab={currentRoute as any} 
+        setActiveTab={navigateTo} 
         onAddClick={handleDirectAddClick}
       />
 
