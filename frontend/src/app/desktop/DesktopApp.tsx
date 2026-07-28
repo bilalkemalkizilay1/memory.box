@@ -6,7 +6,8 @@ import { DiaryPanel } from '@/features/memories/desktop/DiaryPanel';
 import { CirclesPanel } from '@/features/circles/desktop/CirclesPanel';
 import { SenPanel } from '@/features/profile/desktop/SenPanel';
 import { HakkindaPanel } from '@/features/profile/desktop/HakkindaPanel';
-import { CreateMemoryFlow } from '../../features/memories/desktop/CreateMemoryFlow';
+import { CreateMemoryFlow } from '@/features/memories/desktop/CreateMemoryFlow';
+import { HeroPreview } from '@/features/memories/mobile/HeroPreview';
 import { EditMemoryModal } from '../../features/memories/desktop/EditMemoryModal';
 import { Search, User, Plus, Camera, X, Edit3 } from 'lucide-react';
 import { Memory } from '@/shared/types/types';
@@ -50,7 +51,8 @@ export default function DesktopApp() {
     cancelPinning,
     startManualPinning,
     closePinModal,
-    triggerPinSubmit
+    triggerPinSubmit,
+    extractionStatus
   } = useMemoryCreation(handlePanToPin);
 
   const handleGeneralMapClick = () => {
@@ -225,7 +227,15 @@ export default function DesktopApp() {
         onSubmit={(data) => { triggerPinSubmit(data, handlePinSubmit); return Promise.resolve(editingPin as Memory); }}
         prefilledPhotos={prefilledData.photos}
         prefilledPhotoPreviews={prefilledData.photoPreviews}
+        prefilledAddress={prefilledData.address}
       />
+
+      {extractionStatus !== 'idle' && (
+        <HeroPreview 
+          status={extractionStatus} 
+          photoUrl={prefilledData.photoPreviews[0] || null} 
+        />
+      )}
 
       <EditMemoryModal 
         isOpen={isEditModalOpen}
