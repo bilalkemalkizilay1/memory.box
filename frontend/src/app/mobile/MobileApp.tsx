@@ -10,6 +10,8 @@ import { CreateMemoryFlow } from '@/features/memories/mobile/CreateMemoryFlow';
 import { HeroPreview } from '@/features/memories/mobile/HeroPreview';
 import { EditMemoryModal } from '@/features/memories/mobile/EditMemoryModal';
 import { Search, User } from 'lucide-react';
+import { Splash } from '@/features/onboarding/mobile/Splash';
+import { Onboarding } from '@/features/onboarding/mobile/Onboarding';
 import { Memory } from '@/shared/types/types';
 
 // Custom Hooks
@@ -18,9 +20,12 @@ import { useCircles } from '@features/circles/shared/useCircles';
 import { useMemories } from '@features/memories/shared/useMemories';
 import { useMemoryCreation } from '@hooks/useMemoryCreation';
 
-export type MobileRoute = 'map' | 'circles' | 'memories' | 'profile' | 'hakkinda';
+export type MobileRoute = 'today' | 'map' | 'circles' | 'profile' | 'hakkinda';
 
 export default function MobileApp() {
+  const [showSplash, setShowSplash] = useState(() => !localStorage.getItem('onboarded'));
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  
   const [navStack, setNavStack] = useState<MobileRoute[]>(['map']);
   const currentRoute = navStack[navStack.length - 1];
 
@@ -77,6 +82,14 @@ export default function MobileApp() {
     }
     e.target.value = ''; // Reset input to allow selecting the same file again
   };
+
+  if (showSplash) {
+    return <Splash onComplete={() => { setShowSplash(false); setShowOnboarding(true); }} />;
+  }
+
+  if (showOnboarding) {
+    return <Onboarding onComplete={() => { localStorage.setItem('onboarded', 'true'); setShowOnboarding(false); }} />;
+  }
 
   return (
     <div className="app-container mobile-app">
@@ -166,7 +179,7 @@ export default function MobileApp() {
       />
 
       <DiaryPanel 
-        isOpen={currentRoute === 'memories'} 
+        isOpen={currentRoute === 'today'} 
         onClose={goBack}
         privatePins={privatePins}
         onPinClick={(memory) => {

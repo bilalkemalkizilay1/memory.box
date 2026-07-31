@@ -6,14 +6,14 @@
 
 :root {
   /* Colors */
-  --mobile-bg: #F2F2F7;         /* iOS style grouped background */
+  --mobile-bg: #FBF9F5;         /* Warm ivory paper background */
   --mobile-surface: #FFFFFF;    /* Clean white for list items/cards */
-  --mobile-text-main: #000000;
-  --mobile-text-secondary: #8A8A8E;
-  --mobile-text-tertiary: #C7C7CC;
-  --mobile-accent: #C24B3B;     /* Terracotta red */
+  --mobile-text-main: #2C2A29;  /* Dark anthracite */
+  --mobile-text-secondary: #7C7875; /* Soft grey-brown */
+  --mobile-text-tertiary: #BDBBB9;
+  --mobile-accent: #C85A48;     /* Terracotta red */
   
-  --mobile-border: rgba(60, 60, 67, 0.13); /* iOS separator color */
+  --mobile-border: rgba(44, 42, 41, 0.08); /* Extremely faint separator */
 
   /* Spacing (8pt system) */
   --mobile-spacing-xs: 4px;
@@ -35,8 +35,9 @@
   --mobile-radius-lg: 16px;
   --mobile-radius-full: 9999px;
 
-  /* Typography (UI Sans-Serif only) */
-  --mobile-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Typography */
+  --mobile-font: "Inter", system-ui, -apple-system, sans-serif;
+  --mobile-font-serif: "Newsreader", "Playfair Display", serif;
   
   /* Safe Area / Insets */
   --mobile-safe-top: env(safe-area-inset-top, 44px);
@@ -86,10 +87,10 @@
 ========================================= */
 
 .mobile-large-title {
-  font-family: var(--mobile-font);
+  font-family: var(--mobile-font-serif);
   font-size: 34px;
   font-weight: 700;
-  letter-spacing: 0.4px;
+  letter-spacing: 0;
   color: var(--mobile-text-main);
   margin-top: calc(var(--mobile-safe-top) + var(--mobile-spacing-lg));
   margin-bottom: var(--mobile-spacing-lg);
@@ -97,10 +98,10 @@
 }
 
 .mobile-title {
-  font-family: var(--mobile-font);
-  font-size: 22px;
+  font-family: var(--mobile-font-serif);
+  font-size: 24px;
   font-weight: 600;
-  letter-spacing: 0.3px;
+  letter-spacing: 0;
   margin-bottom: var(--mobile-spacing-sm);
 }
 
@@ -203,7 +204,7 @@
   width: 100%;
   height: var(--mobile-input-height);
   background: var(--mobile-surface);
-  border: 0.5px solid var(--mobile-border);
+  border: none;
   border-radius: var(--mobile-radius-md);
   padding: 0 var(--mobile-spacing-md);
   font-family: var(--mobile-font);
@@ -247,7 +248,7 @@
 .mobile-button-secondary {
   background: var(--mobile-surface);
   color: var(--mobile-accent);
-  border: 1px solid var(--mobile-border);
+  border: none;
 }
 
 .mobile-button-ghost {

@@ -1,9 +1,9 @@
 import React from 'react';
-import { Map, CircleDashed, Plus, BookOpen, User } from 'lucide-react';
+import { Book, Map, Plus, CircleDashed, User } from 'lucide-react';
 
 interface BottomNavProps {
-  activeTab: 'map' | 'circles' | 'memories' | 'profile';
-  setActiveTab: (tab: 'map' | 'circles' | 'memories' | 'profile') => void;
+  activeTab: 'today' | 'map' | 'circles' | 'profile';
+  setActiveTab: (tab: 'today' | 'map' | 'circles' | 'profile') => void;
   onAddClick: () => void;
 }
 
@@ -11,19 +11,19 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, o
   return (
     <div className="bottom-nav">
       <button 
+        className={`nav-item ${activeTab === 'today' ? 'active' : ''}`}
+        onClick={() => setActiveTab('today')}
+      >
+        <Book size={24} />
+        <span>Today</span>
+      </button>
+
+      <button 
         className={`nav-item ${activeTab === 'map' ? 'active' : ''}`}
         onClick={() => setActiveTab('map')}
       >
         <Map size={24} />
-        <span>Harita</span>
-      </button>
-
-      <button 
-        className={`nav-item ${activeTab === 'circles' ? 'active' : ''}`}
-        onClick={() => setActiveTab('circles')}
-      >
-        <CircleDashed size={24} />
-        <span>Çemberler</span>
+        <span>Map</span>
       </button>
 
       <button 
@@ -36,11 +36,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, o
       </button>
 
       <button 
-        className={`nav-item ${activeTab === 'memories' ? 'active' : ''}`}
-        onClick={() => setActiveTab('memories')}
+        className={`nav-item ${activeTab === 'circles' ? 'active' : ''}`}
+        onClick={() => setActiveTab('circles')}
       >
-        <BookOpen size={24} />
-        <span>Günlük</span>
+        <CircleDashed size={24} />
+        <span>Circles</span>
       </button>
 
       <button 
@@ -48,10 +48,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, o
         onClick={() => setActiveTab('profile')}
       >
         <User size={24} />
-        <span>Sen</span>
+        <span>Profile</span>
       </button>
     </div>
   );
 };
-
 
