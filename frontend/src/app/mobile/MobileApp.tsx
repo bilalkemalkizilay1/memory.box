@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { BottomNav } from './BottomNav';
 import { MobileMapExperience as MapComponent } from '@/features/map/mobile/MobileMapExperience';
-import { DiaryPanel } from '@/features/memories/mobile/DiaryPanel';
+import { TodayPanel } from '@/features/memories/mobile/TodayPanel';
 import { CirclesPanel } from '@/features/circles/mobile/CirclesPanel';
 import { SenPanel } from '@/features/profile/mobile/SenPanel';
 import { HakkindaPanel } from '@/features/profile/mobile/HakkindaPanel';
@@ -9,6 +9,7 @@ import { HakkindaPanel } from '@/features/profile/mobile/HakkindaPanel';
 import { CreateMemoryFlow } from '@/features/memories/mobile/CreateMemoryFlow';
 import { HeroPreview } from '@/features/memories/mobile/HeroPreview';
 import { EditMemoryModal } from '@/features/memories/mobile/EditMemoryModal';
+import { MemoryExperience } from '@/features/memories/mobile/MemoryExperience';
 import { Search, User } from 'lucide-react';
 import { Splash } from '@/features/onboarding/mobile/Splash';
 import { Onboarding } from '@/features/onboarding/mobile/Onboarding';
@@ -41,6 +42,14 @@ export default function MobileApp() {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingPin, setEditingPin] = useState<Memory | null>(null);
+  
+  const [isExperienceOpen, setIsExperienceOpen] = useState(false);
+  const [viewingPin, setViewingPin] = useState<Memory | null>(null);
+
+  const openMemoryExperience = (memory: Memory) => {
+    setViewingPin(memory);
+    setIsExperienceOpen(true);
+  };
   
   const handleDirectAddClick = () => {
     document.getElementById('mobile-gallery')?.click();
@@ -166,6 +175,8 @@ export default function MobileApp() {
           setEditingPin(memory);
           setIsEditModalOpen(true);
         }}
+        onAddClick={handleDirectAddClick}
+        onPinClick={openMemoryExperience}
       />
 
       {/* Screens */}
@@ -178,16 +189,12 @@ export default function MobileApp() {
         setSelectedCircleId={setSelectedCircleId}
       />
 
-      <DiaryPanel 
+      <TodayPanel 
         isOpen={currentRoute === 'today'} 
         onClose={goBack}
-        privatePins={privatePins}
-        onPinClick={(memory) => {
-          setEditingPin(memory);
-          setIsEditModalOpen(true);
-        }}
-        userProfile={userProfile}
-        setUserProfile={setUserProfile}
+        todayPins={privatePins.filter(p => new Date(p.memory_date).toDateString() === new Date().toDateString())}
+        onPinClick={openMemoryExperience}
+        onAddClick={handleDirectAddClick}
       />
 
       <SenPanel 
@@ -212,9 +219,7 @@ export default function MobileApp() {
       <CreateMemoryFlow 
         isOpen={showPinModal}
         onClose={closePinModal}
-        joinedCircles={joinedCircles}
-        existingPeople={allUniquePeople}
-        onSubmit={(data) => { triggerPinSubmit(data, handlePinSubmit); return Promise.resolve(editingPin as Memory); }}
+        onSubmit={(data) => { triggerPinSubmit(data as any, handlePinSubmit); return Promise.resolve(editingPin as Memory); }}
         prefilledPhotos={prefilledData.photos}
         prefilledPhotoPreviews={prefilledData.photoPreviews}
         prefilledCoords={prefilledData.lat && prefilledData.lng ? { lat: prefilledData.lat, lng: prefilledData.lng } : null}
@@ -239,6 +244,27 @@ export default function MobileApp() {
         joinedCircles={joinedCircles}
         existingPeople={allUniquePeople}
         onSubmit={handlePinUpdate}
+      />
+
+      <MemoryExperience 
+        isOpen={isExperienceOpen}
+        onClose={() => {
+          setIsExperienceOpen(false);
+          setViewingPin(null);
+        }}
+        memory={viewingPin}
+        onEdit={(memory) => {
+          // Keep experience open or close it? The user wants Edit to be a separate phase.
+          // For now, let's close it and open the old EditModal as a placeholder.
+          setIsExperienceOpen(false);
+          setEditingPin(memory);
+          setIsEditModalOpen(true);
+        }}
+        onDelete={(id) => {
+           console.log('Delete memory', id);
+           // Mock delete for MVP
+           setIsExperienceOpen(false);
+        }}
       />
 
       <BottomNav 
