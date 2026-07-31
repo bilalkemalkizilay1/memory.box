@@ -28,8 +28,8 @@ export const MemoryExperience: React.FC<MemoryExperienceProps> = ({
 
   if (!isOpen || !memory) return null;
 
-  const hasPhoto = memory.photos && memory.photos.length > 0;
-  const photoUrl = hasPhoto ? memory.photos[0] : (memory.media?.[0]?.url || null);
+  const hasPhoto = memory.media && memory.media.length > 0 && memory.media[0].url;
+  const photoUrl = hasPhoto ? memory.media[0].url : null;
   
   // Format Date: e.g. "28 Temmuz 2026"
   const formattedDate = new Date(memory.memory_date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });

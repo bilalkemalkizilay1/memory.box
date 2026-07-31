@@ -75,8 +75,8 @@ export const TodayPanel: React.FC<TodayPanelProps> = ({
                     style={{ display: 'flex', gap: '16px', alignItems: 'center', cursor: 'pointer' }}
                   >
                     <div style={{ width: '64px', height: '64px', borderRadius: '12px', background: '#e0e0e0', overflow: 'hidden', flexShrink: 0 }}>
-                      {memory.photos && memory.photos[0] ? (
-                        <img src={memory.photos[0]} alt="Memory" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      {memory.media && memory.media[0]?.url ? (
+                        <img src={memory.media[0].url} alt="Memory" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
                         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', background: 'var(--mobile-accent)' }}>
                           <Camera size={24} />
